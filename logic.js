@@ -1,59 +1,132 @@
-// ===== logic.js (MovieClub v2.3) =====
+// ====== logic.js v2.3 (patched) ======
 
-/*
-  Этот файл теперь является ES-модулем.
-  index.html:  <script src="logic.js" type="module" defer></script>
-*/
-import { loadAndRenderMovies, setSearch } from './ui.js';
+// --- Global state ----------------------------------------------------------
+window.currentTab     = 'planned';
+window.currentUser    = localStorage.getItem('mc_user') || '';
+window.currentFilter  = 'all';
+window.currentSearch  = '';
 
-// Состояние
-let currentUser = localStorage.getItem('mc_user') || null;
-export { currentUser };
+// --- Helpers ---------------------------------------------------------------
+const isSvyat      = user => user === 'Свят';
+const fieldByUser  = (base, user) => isSvyat(user) ? `${base}Svyat` : `${base}Alena`;
 
-// ---------- helpers ----------
-const $ = (sel) => document.querySelector(sel);
-const $$ = (sel) => document.querySelectorAll(sel);
+// --- Movie CRUD actions ----------------------------------------------------
+window.addMovie = async function () {
+  const title = document.getElementById('new-movie-title').value.trim();
+  const year  = document.getElementById('new-movie-year').value.trim();
 
-// ---------- выбор пользователя ----------
-export function chooseUser(user, fromModal = false) {
-  currentUser = user;
+  if (!title || !window.currentUser) return;
+
+  const movieObj = {
+    title,
+    year: year ? Number(year) : null,
+    status: 'Запланирован',
+    date: new Date().toISOString(),
+    addedBy: window.currentUser,
+    scoreSvyat: null,
+    scoreAlena: null,
+    commentSvyat: '',
+    commentAlena: '',
+    emojiSvyat: '',
+    emojiAlena: '',
+    confirmedSvyat: false,
+    confirmedAlena: false
+  };
+
+  try {
+    await dbAddMovie(movieObj);
+    document.getElementById('new-movie-title').value = '';
+    document.getElementById('new-movie-year').value  = '';
+    loadAndRenderMovies();
+  } catch (e) {
+    console.error('dbAddMovie failed', e);
+    showToast('Ошибка сохранения 😢');
+  }
+};
+
+window.deleteMovieLogic = async function (id) {
+  await dbDeleteMovie(id);
+  loadAndRenderMovies();
+};
+
+window.confirmReviewLogic = async function (id, user) {
+  await dbUpdateMovie(id, { [fieldByUser('confirmed', user)]: true });
+  loadAndRenderMovies();
+};
+
+window.setCommentLogic = async function (id, user, value) {
+  await dbUpdateMovie(id, { [fieldByUser('comment', user)]: value });
+  loadAndRenderMovies();
+};
+
+window.setScoreStar = async function (id, user, value) {
+  await dbUpdateMovie(id, { [fieldByUser('score', user)]: value });
+  loadAndRenderMovies();
+  navigator.vibrate?.(20);
+};
+
+// --- View / state switches --------------------------------------------------
+window.switchTab = function (tab) {
+  if (window.currentTab === tab) return;
+  window.currentTab = tab;
+  document.querySelectorAll('.tab').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.tab === tab)
+  );
+  loadAndRenderMovies();
+};
+
+window.setFilter = function (filter) {
+  window.currentFilter = filter;
+  renderFilters(filter);
+  loadAndRenderMovies();
+};
+
+window.setSearch = function (val) {
+  window.currentSearch = val.trim().toLowerCase();
+  loadAndRenderMovies();
+};
+
+window.chooseUser = function (user, fromModal = false) {
+  window.currentUser = user;
   localStorage.setItem('mc_user', user);
 
-  $$('.avatar-btn').forEach((b) => b.classList.remove('active'));
-  if (user === 'Свят')   $('#btn-svyat') .classList.add('active');
-  if (user === 'Алёна')  $('#btn-alena').classList.add('active');
+  document.querySelectorAll('.avatar-btn').forEach(btn =>
+    btn.classList.toggle('active',
+      btn.querySelector('.avatar-name').textContent === user)
+  );
 
-  if (fromModal) closeUserModal();
+  if (fromModal) {
+    document.getElementById('user-modal').style.display = 'none';
+    document.querySelector('.container').style.filter        = '';
+    document.querySelector('.container').style.pointerEvents = '';
+  }
 
   loadAndRenderMovies();
-}
+};
 
-// ---------- модалка ----------
-export function showUserModal() {
-  const modal = $('#user-modal');
-  if (!modal || modal.style.display === 'flex') return; // уже открыта
-  modal.style.display = 'flex';
-  $('.container').style.filter        = 'blur(4px)';
-  $('.container').style.pointerEvents = 'none';
-}
+window.showModal = function () {
+  document.getElementById('user-modal').style.display = 'flex';
+  document.querySelector('.container').style.filter        = 'blur(4px)';
+  document.querySelector('.container').style.pointerEvents = 'none';
+};
 
-function closeUserModal() {
-  const modal = $('#user-modal');
-  if (!modal || modal.style.display === 'none') return;
-  modal.style.display = 'none';
-  $('.container').style.filter        = '';
-  $('.container').style.pointerEvents = 'auto';
-}
+// --- Search & add quick handlers -------------------------------------------
+document.getElementById('movie-search')
+  .addEventListener('input', e => setSearch(e.target.value));
 
-// ---------- слушатели DOM ----------
-$('#movie-search') .addEventListener('input',  (e) => setSearch(e.target.value));
-$('#new-movie-title').addEventListener('keydown', (e) => e.key === 'Enter' && addMovie());
-$('#new-movie-year') .addEventListener('keydown', (e) => e.key === 'Enter' && addMovie());
+['new-movie-title', 'new-movie-year'].forEach(id =>
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') addMovie();
+  })
+);
 
-$('#btn-svyat') .addEventListener('click', () => chooseUser('Свят'));
-$('#btn-alena').addEventListener('click', () => chooseUser('Алёна'));
+['btn-svyat', 'btn-alena'].forEach(id =>
+  document.getElementById(id).addEventListener('click', () =>
+    chooseUser(id === 'btn-svyat' ? 'Свят' : 'Алёна'))
+);
 
-// ---------- загрузка при старте ----------
-window.addEventListener('DOMContentLoaded', () => {
-  currentUser ? loadAndRenderMovies() : showUserModal();
+// --- Startup ---------------------------------------------------------------
+window.addEventListener('load', () => {
+  if (!window.currentUser) showModal();
+  else loadAndRenderMovies();
 });
