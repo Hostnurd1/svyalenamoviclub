@@ -1,6 +1,6 @@
-// ==== MovieClub v2.0: firebase.js ====
+// ====== firebase.js (MovieClub v2.2) ======
 
-// 1. Инициализация Firebase (только один раз во всём проекте)
+// 1. Инициализация Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAxLMSDQSPon7NTd9loVRMLNCseBFSOTDc",
   authDomain: "movieclub-aba80.firebaseapp.com",
@@ -13,21 +13,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// 2. Базовые функции для других файлов (CRUD)
+// 2. CRUD-функции для фильмов
+
+// Добавить фильм
 async function dbAddMovie(movieObj) {
   return db.collection('movies').add(movieObj);
 }
 
+// Удалить фильм
 async function dbDeleteMovie(id) {
   return db.collection('movies').doc(id).delete();
 }
 
+// Обновить фильм
 async function dbUpdateMovie(id, fields) {
   return db.collection('movies').doc(id).update(fields);
 }
 
+// Получить список фильмов
 async function dbGetMovies() {
-  // Получить все фильмы, упорядоченные по дате (новые сверху)
   const res = await db.collection('movies').orderBy('date', 'desc').get();
   const arr = [];
   res.forEach(doc => arr.push({ id: doc.id, ...doc.data() }));
