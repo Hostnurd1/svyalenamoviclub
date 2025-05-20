@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Свят & Алёна MovieClub v2.0</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Стили -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Модалка выбора пользователя -->
+  <div id="user-modal">
+    <div class="modal-content">
+      <div class="modal-title">Кто вы?</div>
+      <button id="modal-btn-svyat" class="modal-btn" onclick="chooseUser('Свят',true)">Я — Свят</button>
+      <button id="modal-btn-alena" class="modal-btn" onclick="chooseUser('Алёна',true)">Я — Алёна</button>
+    </div>
+  </div>
+
+  <!-- Панель выбора и смены пользователя -->
+  <div class="user-switch">
+    <button id="btn-svyat" onclick="chooseUser('Свят')">Я — Свят</button>
+    <button id="btn-alena" onclick="chooseUser('Алёна')">Я — Алёна</button>
+    <button id="btn-switch" class="switch-btn" onclick="showModal()" title="Сменить пользователя">Сменить</button>
+  </div>
+
+  <!-- Навигация по вкладкам -->
+  <div class="nav-tabs">
+    <button class="tab active" data-tab="planned" onclick="switchTab('planned')">Запланировано</button>
+    <button class="tab" data-tab="watched" onclick="switchTab('watched')">Просмотрено</button>
+    <button class="tab" data-tab="stats" onclick="switchTab('stats')">Статистика</button>
+  </div>
+
+  <!-- Фильтры и поиск -->
+  <div class="filters-search">
+    <div class="filters">
+      <button class="filter-btn" data-filter="all" onclick="setFilter('all')">Все</button>
+      <button class="filter-btn" data-filter="8+" onclick="setFilter('8+')">8+</button>
+      <button class="filter-btn" data-filter="withComment" onclick="setFilter('withComment')">С комментарием</button>
+      <button class="filter-btn" data-filter="confirmedOnly" onclick="setFilter('confirmedOnly')">Подтвержденные</button>
+    </div>
+    <input type="text" id="movie-search" placeholder="Поиск по названию...">
+  </div>
+
+  <!-- Версия приложения -->
+  <div class="version">v2.0</div>
+
+  <div class="container">
+    <h1>Свят & Алёна MovieClub</h1>
+    <div class="add-movie">
+      <input type="text" id="new-movie-title" placeholder="Название фильма...">
+      <input type="number" id="new-movie-year" placeholder="Год" min="1900" max="2100" style="width:80px;">
+      <button onclick="addMovie()">Добавить</button>
+    </div>
+    <div id="randomizer-block">
+      <button onclick="randomMovie()" class="random-btn">🎲 Что смотреть?</button>
+      <div id="random-out"></div>
+    </div>
+    <!-- Список фильмов (формируется динамически) -->
+    <ul class="movie-list" id="movie-list"></ul>
+    <!-- Статистика (видна только на вкладке "Статистика") -->
+    <div id="stats-block" style="margin-top:24px;"></div>
+  </div>
+
+  <!-- Firebase SDK (всегда до своих файлов!) -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
+
+  <!-- Твои модули -->
+  <script src="firebase.js"></script>
+  <script src="ui.js"></script>
+  <script src="logic.js"></script>
+  <script src="stats.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
