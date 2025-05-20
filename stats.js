@@ -1,101 +1,100 @@
-// ===== stats.js (MovieClub v2.3) =====
-// Модуль статистики. Экспортируем одну публичную функцию:
-//   renderStats(moviesArray)
-// Принимает массив фильмов (документы Firestore) и заполняет блок #stats-block
-// на вкладке «Статистика».
+/* ===== stats.js v2.3 ===== */
 
-// ---------------------------------------------------------------------------
-// helpers
-// ---------------------------------------------------------------------------
+//
+// 1. Pure helpers -----------------------------------------------------------
+//
 
-function getTopMovies(movies, limit = 5) {
-  const rated = movies.filter((m) => typeof m.scoreSvyat === 'number' && typeof m.scoreAlena === 'number');
-  rated.sort((a, b) => averageScore(b) - averageScore(a));
-  return rated.slice(0, limit);
-}
+// среднее значение массива чисел (или «–»)
+const avg = arr => {
+  const nums = arr.filter(x => typeof x === 'number');
+  return nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2) : '–';
+};
 
-function getScoreMatches(movies) {
-  return movies.filter(
-    (m) => typeof m.scoreSvyat === 'number' && m.scoreSvyat === m.scoreAlena
-  );
-}
+// top-N по средней оценке
+const getTopMovies = (movies, limit = 5) =>
+  movies
+    .filter(m => m.scoreSvyat != null && m.scoreAlena != null)
+    .sort((a, b) =>
+      ((b.scoreSvyat + b.scoreAlena) / 2) -
+      ((a.scoreSvyat + a.scoreAlena) / 2))
+    .slice(0, limit);
 
-function getWatchTrends(movies) {
+// совпавшие оценки
+const getScoreMatches = movies =>
+  movies.filter(m =>
+    m.scoreSvyat != null &&
+    m.scoreAlena != null &&
+    m.scoreSvyat === m.scoreAlena);
+
+// просмотренные по месяцам { 'YYYY-MM': count }
+const getWatchTrends = movies => {
   const byMonth = {};
-  movies.forEach((m) => {
+  movies.forEach(m => {
     if (m.status === 'Просмотрен' && m.date) {
-      // m.date может быть либо ISO‑строкой, либо объектом Timestamp (Firestore)
-      const iso = typeof m.date === 'string' ? m.date : m.date.toDate().toISOString();
-      const month = iso.slice(0, 7); // YYYY-MM
+      const month = m.date.slice(0, 7);
       byMonth[month] = (byMonth[month] || 0) + 1;
     }
   });
   return byMonth;
-}
+};
 
-function averageScore(movie) {
-  return (movie.scoreSvyat + movie.scoreAlena) / 2;
-}
+//
+// 2. Render -----------------------------------------------------------------
+//
 
-function avg(arr) {
-  const nums = arr.filter((x) => typeof x === 'number');
-  if (!nums.length) return '-';
-  return (nums.reduce((a, b) => a + b, 0) / nums.length).toFixed(2);
-}
+function renderStats(movies = []) {
+  const node = document.getElementById('stats-block');
+  if (!node) return;
 
-// ---------------------------------------------------------------------------
-// public
-// ---------------------------------------------------------------------------
-export function renderStats(movies) {
-  const container = document.getElementById('stats-block');
-  if (!container) return;
+  // summary
+  const total     = movies.length;
+  const planned   = movies.filter(m => m.status === 'Запланирован').length;
+  const watched   = movies.filter(m => m.status === 'Просмотрен').length;
+  const avgSvyat  = avg(movies.map(m => m.scoreSvyat));
+  const avgAlena  = avg(movies.map(m => m.scoreAlena));
 
-  const total = movies.length;
-  const planned = movies.filter((m) => m.status === 'Запланирован').length;
-  const watched = movies.filter((m) => m.status === 'Просмотрен').length;
+  // details
+  const top      = getTopMovies(movies);
+  const matches  = getScoreMatches(movies);
+  const trends   = getWatchTrends(movies);
 
-  const avgSvyat = avg(movies.map((m) => m.scoreSvyat));
-  const avgAlena = avg(movies.map((m) => m.scoreAlena));
-
-  const top = getTopMovies(movies, 5);
-  const matches = getScoreMatches(movies);
-  const trends = getWatchTrends(movies);
-
-  const html = `
+  node.innerHTML = /*html*/`
     <div class="stats-summary">
-      <p><b>Всего фильмов:</b> ${total}</p>
-      <p><b>Запланировано:</b> ${planned}</p>
-      <p><b>Просмотрено:</b> ${watched}</p>
-      <p><b>Средняя оценка Свята:</b> ${avgSvyat}</p>
-      <p><b>Средняя оценка Алёны:</b> ${avgAlena}</p>
+      <b>Всего фильмов:</b> ${total}<br>
+      <b>Запланировано:</b> ${planned}<br>
+      <b>Просмотрено:</b> ${watched}<br>
+      <b>Средняя оценка Свята:</b> ${avgSvyat}<br>
+      <b>Средняя оценка Алёны:</b> ${avgAlena}<br>
 
-      <hr style="margin: 16px 0;" />
+      <hr style="margin:16px 0;">
 
-      <h3>Топ‑5 фильмов по средней оценке</h3>
+      <h3>Топ-5 фильмов по оценке</h3>
       <ol>
-        ${top
-          .map((m) => {
-            const year = m.year ? ` (${m.year})` : '';
-            return `<li>${m.title}${year} — <b>${averageScore(m).toFixed(1)}</b></li>`;
-          })
-          .join('')}
+        ${top.map(m => `
+          <li>
+            ${m.title}${m.year ? ` (${m.year})` : ''} —
+            <b>${((m.scoreSvyat + m.scoreAlena) / 2).toFixed(1)}</b>
+          </li>
+        `).join('')}
       </ol>
 
       <h3>Совпадения оценок (${matches.length})</h3>
       <ul>
-        ${matches
-          .map((m) => `<li>${m.title} — <b>${m.scoreSvyat}</b></li>`)
-          .join('')}
+        ${matches.map(m => `
+          <li>${m.title} — <b>${m.scoreSvyat}</b></li>
+        `).join('')}
       </ul>
 
       <h3>Тренд по месяцам</h3>
       <ul>
-        ${Object.entries(trends)
-          .sort(([a], [b]) => (a > b ? 1 : -1))
-          .map(([month, count]) => `<li>${month}: <b>${count}</b> фильмов</li>`)
-          .join('')}
+        ${Object.entries(trends).map(([month, count]) => `
+          <li>${month}: <b>${count}</b> фильм(ов)</li>
+        `).join('')}
       </ul>
-    </div>`;
-
-  container.innerHTML = html;
+    </div>
+  `;
 }
+
+//
+// 3. (опц.) экспорт — если используешь ES-modules
+//    export { renderStats };
