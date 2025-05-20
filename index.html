@@ -1,29 +1,40 @@
-    // --- РАНДОМАЙЗЕР "ЧТО СМОТРЕТЬ?" ---
-
-    // Добавь кнопку и блок вывода в HTML (например, под списком фильмов):
-    // <button onclick="randomMovie()" style="margin: 16px 0; width: 100%;">🎲 Что смотреть?</button>
-    // <div id="random-out"></div>
-
-    async function randomMovie() {
-      const res = await db.collection('movies').where('status','==','Запланирован').get();
-      const arr = [];
-      res.forEach(doc => arr.push(doc.data()));
-      if (arr.length === 0) {
-        document.getElementById('random-out').innerText = 'Нет фильмов в планах!';
-        return;
-      }
-      const rnd = arr[Math.floor(Math.random()*arr.length)];
-      document.getElementById('random-out').innerHTML = `🎬 Ваш выбор: <b>${rnd.title}</b>`;
-    }
-
-    // --- ФИНАЛЬНЫЙ БЛОК ---
-
-    // Автоматически подсвечивать выбор пользователя при загрузке страницы
-    if (!currentUser) {
-      document.getElementById('user-modal').style.display = 'flex';
-    } else {
-      chooseUser(currentUser);
-    }
-  </script>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Свят & Алёна MovieClub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Модалка выбора пользователя -->
+  <div id="user-modal">
+    <div class="modal-content">
+      <div class="modal-title">Кто вы?</div>
+      <button id="modal-btn-svyat" class="modal-btn" onclick="chooseUser('Свят',true)">Я — Свят</button>
+      <button id="modal-btn-alena" class="modal-btn" onclick="chooseUser('Алёна',true)">Я — Алёна</button>
+    </div>
+  </div>
+  <!-- Панель выбора сверху -->
+  <div class="user-switch">
+    <button id="btn-svyat" onclick="chooseUser('Свят')">Я — Свят</button>
+    <button id="btn-alena" onclick="chooseUser('Алёна')">Я — Алёна</button>
+  </div>
+  <div class="container">
+    <h1>Свят & Алёна MovieClub</h1>
+    <div class="add-movie">
+      <input type="text" id="new-movie-title" placeholder="Добавить фильм...">
+      <button onclick="addMovie()">Добавить</button>
+    </div>
+    <div id="randomizer-block">
+      <button onclick="randomMovie()" class="random-btn">🎲 Что смотреть?</button>
+      <div id="random-out"></div>
+    </div>
+    <ul class="movie-list" id="movie-list"></ul>
+  </div>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
