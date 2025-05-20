@@ -1,145 +1,181 @@
-// ====== UI v2.2 ======
+/* =============================
+   MovieClub – ui.js  v2.3
+   =============================
+   * визуальная часть (DOM)
+   * без бизнес‑логики / firestore
+   * зависит от logic.js helpers
+   ============================= */
 
-/* Звёздочный рейтинг (10 звёзд) */
-function renderStarRating(id, user, rating, disabled = false) {
-  let html = '<div class="star-rating">';
-  for (let i = 1; i <= 10; i++) {
-    html += `<span class="star${i <= rating ? ' filled' : ''}" 
-      tabindex="0" 
-      data-star="${i}" 
-      data-id="${id}" 
-      data-user="${user}" 
-      ${disabled ? 'aria-disabled="true"' : ''}>
-      ★
-    </span>`;
+/********************************
+ * 1. STAR‑RATING COMPONENT     *
+ ********************************/
+const STAR_MAX = 10;
+
+function starSvg(fill = false){
+  return fill
+    ? '★'  // можно заменить на inline‑svg, если понадобится
+    : '☆';
+}
+
+/**
+ * @param {string} id    – movie id (firestore doc)
+ * @param {"Свят"|"Алёна"} user – whose rating block
+ * @param {number|null} rating
+ * @param {boolean} disabled
+ */
+function renderStarRating(id, user, rating = 0, disabled = false){
+  let html = '<div class="star-rating" role="radiogroup">';
+  for(let i = 1; i <= STAR_MAX; i++){
+    const filled = i <= rating;
+    html += `
+      <span class="star${filled ? ' filled' : ''}"
+            role="radio" aria-label="${i}"
+            tabindex="0"
+            data-star="${i}"
+            data-id="${id}"
+            data-user="${user}"
+            ${disabled ? 'aria-disabled="true"' : ''}>
+        ${starSvg(filled)}
+      </span>`;
   }
   html += '</div>';
   return html;
 }
 
-/* Скелетон-загрузка */
-function renderSkeleton(count = 4) {
-  let html = '';
-  for (let i = 0; i < count; i++) html += `<div class="skeleton"></div>`;
-  document.getElementById('movie-list').innerHTML = html;
-}
-
-/* Toast/snackbar (успех или ошибка) */
-function showToast(message, type = 'success') {
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerText = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 1700);
-}
-
-/* Пятюня — анимация совпадения */
-function showFives() {
-  let el = document.createElement('div');
-  el.className = "toast toast-success";
-  el.innerHTML = "&#128079; Пятюня! Совпали оценки! &#128079;";
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 1600);
-}
-
-/* Рендер фильмов */
-function renderMovieList(movies, currentUser) {
+/********************************
+ * 2. SKELETON LOADER           *
+ ********************************/
+function renderSkeleton(rows = 4){
   const list = document.getElementById('movie-list');
-  if (!list) return;
-  if (!movies.length) {
+  if(!list) return;
+  list.innerHTML = Array.from({length: rows}, () => '<div class="skeleton"></div>').join('');
+}
+
+/********************************
+ * 3. TOAST / SNACKBAR          *
+ ********************************/
+function showToast(msg, type = 'success'){
+  const div = document.createElement('div');
+  div.className = `toast toast-${type}`;
+  div.textContent = msg;
+  document.body.appendChild(div);
+  // auto‑hide
+  setTimeout(() => {
+    div.style.opacity = '0';
+    setTimeout(() => div.remove(), 220);
+  }, 1700);
+}
+
+/********************************
+ * 4. HIGH‑FIVE animation       *
+ ********************************/
+function showHighFive(){
+  showToast('👏 Пятюня! Совпали оценки! 👏', 'success');
+}
+
+/********************************
+ * 5. MOVIE LIST RENDER         *
+ ********************************/
+function renderMovieList(movies, currentUser){
+  const list = document.getElementById('movie-list');
+  if(!list) return;
+
+  if(!movies.length){
     list.innerHTML = `<li class="movie" style="text-align:center;color:#bbb;font-size:18px;padding:33px 0;">
       Нет фильмов по заданным фильтрам</li>`;
     return;
   }
-  let html = '';
-  movies.forEach(m => {
-    let verb = (m.addedBy === 'Алёна') ? 'добавила' : (m.addedBy === 'Свят' ? 'добавил' : '');
-    let yearStr = m.year ? `<span class="movie-year">(${m.year})</span>` : '';
-    let disableSvyat = !(currentUser === 'Свят' && !m.confirmedSvyat);
-    let disableAlena = !(currentUser === 'Алёна' && !m.confirmedAlena);
 
-    // Флажок совпадения оценок
-    let match = (m.scoreSvyat && m.scoreAlena && m.scoreSvyat === m.scoreAlena);
+  let needHiFive = false;
+  let html = movies.map(m => {
+    const verb     = m.addedBy === 'Алёна' ? 'добавила' : 'добавил';
+    const yearStr  = m.year ? `<span class="movie-year">(${m.year})</span>` : '';
 
-    html += `<li class="movie">
-      <div class="movie-header">
-        <span class="movie-title">${m.title}</span>
-        ${yearStr}
-        <span class="movie-status">${m.status || ''}</span>
-        ${m.addedBy ? `<span class="mini">${verb}: ${m.addedBy}</span>` : ''}
-        <button class="del-btn" onclick="deleteMovieUI('${m.id}')" title="Удалить фильм">✖️</button>
-      </div>
-      <div class="user-block user-svyat">
-        <div class="user-row">
-          <span class="user-label">Свят:</span>
-          ${renderStarRating(m.id, 'Свят', m.scoreSvyat, disableSvyat)}
+    const disableS = !(currentUser === 'Свят'  && !m.confirmedSvyat);
+    const disableA = !(currentUser === 'Алёна' && !m.confirmedAlena);
+
+    const hasBoth  = m.scoreSvyat != null && m.scoreAlena != null;
+    const match    = hasBoth && m.scoreSvyat === m.scoreAlena;
+    if(match) needHiFive = true;
+
+    const avgScore = hasBoth ? ((m.scoreSvyat + m.scoreAlena) / 2).toFixed(1) : '-';
+
+    return `
+      <li class="movie">
+        <div class="movie-header">
+          <span class="movie-title">${m.title}</span>
+          ${yearStr}
+          <span class="movie-status">${m.status || ''}</span>
+          ${m.addedBy ? `<span class="mini">${verb}: ${m.addedBy}</span>` : ''}
+          <button class="del-btn" title="Удалить фильм" onclick="deleteMovieUI('${m.id}')">✖️</button>
         </div>
-        <textarea rows="2" placeholder="Комментарий" 
-          onchange="setCommentUI('${m.id}','Свят',this.value)"
-          ${disableSvyat ? 'disabled' : ''}>${m.commentSvyat || ''}</textarea>
-        <button class="confirm-btn" 
-          onclick="confirmReviewUI('${m.id}','Свят')"
-          ${(!m.scoreSvyat || disableSvyat) ? 'disabled' : ''}>Подтвердить</button>
-      </div>
-      <div class="user-block user-alena">
-        <div class="user-row">
-          <span class="user-label">Алёна:</span>
-          ${renderStarRating(m.id, 'Алёна', m.scoreAlena, disableAlena)}
+
+        <div class="user-block user-svyat">
+          <div class="user-row">
+            <span class="user-label">Свят:</span>
+            ${renderStarRating(m.id,'Свят',m.scoreSvyat,disableS)}
+          </div>
+          <textarea placeholder="Комментарий" ${disableS ? 'disabled' : ''}
+            onchange="setCommentUI('${m.id}','Свят',this.value)">${m.commentSvyat || ''}</textarea>
+          <button class="confirm-btn" ${(!m.scoreSvyat || disableS) ? 'disabled' : ''}
+            onclick="confirmReviewUI('${m.id}','Свят')">Подтвердить</button>
         </div>
-        <textarea rows="2" placeholder="Комментарий" 
-          onchange="setCommentUI('${m.id}','Алёна',this.value)"
-          ${disableAlena ? 'disabled' : ''}>${m.commentAlena || ''}</textarea>
-        <button class="confirm-btn" 
-          onclick="confirmReviewUI('${m.id}','Алёна')"
-          ${(!m.scoreAlena || disableAlena) ? 'disabled' : ''}>Подтвердить</button>
-      </div>
-      <span class="avg-score">Средняя оценка: ${
-        (m.scoreSvyat && m.scoreAlena)
-          ? ((Number(m.scoreSvyat)+Number(m.scoreAlena))/2).toFixed(1)
-          : '-'
-      }</span>
-      ${match ? `<span class="important-note" style="float:left;margin-top:7px;">&#128079; Совпадение! &#128079;</span>` : ''}
-    </li>`;
-    // Пятюня-анимашка на совпадение (вызывается только когда есть match)
-    if (match) setTimeout(showFives, 200);
-  });
+
+        <div class="user-block user-alena">
+          <div class="user-row">
+            <span class="user-label">Алёна:</span>
+            ${renderStarRating(m.id,'Алёна',m.scoreAlena,disableA)}
+          </div>
+          <textarea placeholder="Комментарий" ${disableA ? 'disabled' : ''}
+            onchange="setCommentUI('${m.id}','Алёна',this.value)">${m.commentAlena || ''}</textarea>
+          <button class="confirm-btn" ${(!m.scoreAlena || disableA) ? 'disabled' : ''}
+            onclick="confirmReviewUI('${m.id}','Алёна')">Подтвердить</button>
+        </div>
+
+        <span class="avg-score">Средняя оценка: ${avgScore}</span>
+        ${match ? '<span class="important-note">👏 Совпадение! 👏</span>' : ''}
+      </li>`;
+  }).join('');
+
   list.innerHTML = html;
+
+  if(needHiFive) setTimeout(showHighFive, 200);
 }
 
-/* UI — удалить фильм (вызывает логику) */
-window.deleteMovieUI = function(id) {
-  if (confirm('Точно удалить фильм?')) {
-    deleteMovieLogic(id);
-  }
-};
-/* UI — подтвердить отзыв */
-window.confirmReviewUI = function(id, user) {
-  confirmReviewLogic(id, user);
-  showToast('Оценка подтверждена!');
-};
-/* UI — сохранить комментарий */
-window.setCommentUI = function(id, user, value) {
-  setCommentLogic(id, user, value);
-};
-
-/* Фильтры: визуальная активность */
-function renderFilters(currentFilter) {
-  document.querySelectorAll('.filter-btn').forEach(btn => {
-    if (btn.dataset.filter === currentFilter) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
+/********************************
+ * 6. FILTERS ACTIVE STATE      *
+ ********************************/
+function renderFilters(currentFilter){
+  document.querySelectorAll('.filter-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.filter === currentFilter));
 }
 
-/* Звезды интерактив (клик) */
-document.addEventListener('click', function (e) {
-  if (e.target.classList.contains('star') && !e.target.hasAttribute('aria-disabled')) {
-    const val = +e.target.dataset.star;
-    const id = e.target.dataset.id;
-    const user = e.target.dataset.user;
-    window.setScoreStar(id, user, val);
-  }
+/********************************
+ * 7. EVENT DELEGATION – stars  *
+ ********************************/
+document.addEventListener('click', e => {
+  const star = e.target.closest('.star');
+  if(!star || star.hasAttribute('aria-disabled')) return;
+  const {star:val,id,user} = star.dataset;
+  window.setScoreStar(id, user, +val);
 });
 
+// keyboard (space / enter) for accessibility
+document.addEventListener('keydown', e => {
+  if(!['Enter',' '].includes(e.key)) return;
+  const star = e.target.closest('.star');
+  if(!star || star.hasAttribute('aria-disabled')) return;
+  e.preventDefault();
+  const {star:val,id,user} = star.dataset;
+  window.setScoreStar(id, user, +val);
+});
+
+/********************************
+ * 8. UI wrappers (modal actions)*
+ ********************************/
+window.deleteMovieUI = id => confirm('Точно удалить фильм?') && deleteMovieLogic(id);
+window.confirmReviewUI = (id,user) => { confirmReviewLogic(id,user); showToast('Оценка подтверждена!'); };
+window.setCommentUI   = (id,user,val) => setCommentLogic(id,user,val);
+
+// экспорт (если ESM)
+// export { renderSkeleton, renderMovieList, renderFilters, showToast, showHighFive };
