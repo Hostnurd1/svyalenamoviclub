@@ -1,23 +1,24 @@
 /* =================================================
-   MovieClub — main.js v2.4
+   MovieClub — main.js v2.4.1
    -------------------------------------------------
-   «Клей» интерфейса:
-     • вешает обработчики на фильтры, табы, поиск
-     • оборачивает экшены в короткий skeleton-шимер
-     • реализует рандом-фильм как toast
+   • обработчики UI
+   • skeleton-wrapper
+   • 🎲-рандом как toast
    ================================================= */
 
-import { dbGetMovies }  from "./firebase.js";
-import { renderSkeleton, showToast } from "./ui.js";
+import { dbGetMovies }           from "./firebase.js";
+import { renderSkeleton,
+         showToast               } from "./ui.js";
 
-/* ---------- 1. helper: skeleton-обёртка ------------------------------ */
-const withSkeleton = fn => (...args) => {
+/* ---------- skeleton-обёртка -------------------- */
+const withSkeleton = fn => (...a) => {
   renderSkeleton();
-  setTimeout(() => fn(...args), 120);   // имитация лагов сети
+  setTimeout(() => fn(...a), 120);
 };
 
-/* ---------- 2. DOMContentLoaded — события --------------------------- */
+/* ---------- DOMContentLoaded ------------------- */
 document.addEventListener("DOMContentLoaded", () => {
+
   /* версия */
   document.getElementById("versionLabel").textContent = "v2.4";
 
@@ -27,60 +28,59 @@ document.addEventListener("DOMContentLoaded", () => {
       withSkeleton(() => window.setFilter(btn.dataset.filter)))
   );
 
-  /* вкладки (табы) */
+  /* вкладки */
   document.querySelectorAll(".tab").forEach(btn =>
     btn.addEventListener("click",
       withSkeleton(() => window.switchTab(btn.dataset.tab)))
   );
 
   /* поиск */
-  document
-    .getElementById("movie-search")
-    .addEventListener("input",
-      withSkeleton(e => window.setSearch(e.target.value)));
+  movieSearch.addEventListener("input",
+    withSkeleton(e => window.setSearch(e.target.value)));
 
   /* рандомайзер */
-  document
-    .getElementById("randomBtn")
-    .addEventListener("click", randomMovie);
+  randomBtn.addEventListener("click", randomMovie);
 
   /* Enter-добавление */
   ["new-movie-title", "new-movie-year"].forEach(id =>
-    document.getElementById(id).addEventListener("keydown", e => {
-      if (e.key === "Enter") window.addMovie();
-    })
+    document.getElementById(id).addEventListener("keydown",
+      e => e.key === "Enter" && window.addMovie())
   );
 });
 
-/* ---------- 3. 🎲 Случайный фильм ------------------------------------ */
+/* ---------- 🎲 рандом-фильм --------------------- */
 async function randomMovie() {
-  const out = document.getElementById("random-out");
-  out.textContent = "🎲 ищем…";
+  const placeholder = document.getElementById("random-out");
+  placeholder.classList.remove("hidden");
+  placeholder.textContent = "🎲 ищем…";
 
-  let movies = [];
+  let list = [];
   try {
-    movies = await dbGetMovies();
+    list = await dbGetMovies();
   } catch (_) {
-    out.textContent = "Ошибка сети 😢";
+    placeholder.textContent = "Ошибка сети 😢";
     return;
   }
 
-  movies = movies.filter(m => m.status === "Запланирован");
-  if (!movies.length) {
-    out.textContent = "Нет фильмов в планах!";
+  const pool = list.filter(m => m.status === "Запланирован");
+  if (!pool.length) {
+    placeholder.textContent = "Нет фильмов в планах!";
     return;
   }
 
-  const rnd = movies[Math.floor(Math.random() * movies.length)];
-  out.innerHTML =
-    `🎬 Ваш выбор: <b>${rnd.title}${rnd.year ? ` (${rnd.year})` : ""}</b>`;
+  const m = pool[Math.floor(Math.random() * pool.length)];
 
-  /* превращаем плашку в toast */
-  out.classList.add("toast", "toast-success");
-  setTimeout(() => out.remove(), 1700);
+  /* скрываем placeholder и показываем toast */
+  placeholder.classList.add("hidden");
+  placeholder.textContent = "";
 
-  /* лёгкая вибрация */
+  showToast(`🎬 Ваш выбор: <b>${m.title}${m.year ? ` (${m.year})` : ""}</b>`,
+            "success");
+
   navigator.vibrate?.(15);
 }
 
+/* ---------- DOM shortcuts (кэш) --------------- */
+const movieSearch = document.getElementById("movie-search");
+const randomBtn   = document.getElementById("randomBtn");
 
