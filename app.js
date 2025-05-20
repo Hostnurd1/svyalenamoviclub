@@ -1,11 +1,11 @@
 // App.js
-import MovieList from "./MovieList";
 import React, { useState } from "react";
 import "./App.css";
+import MovieList from "./MovieList";
+// Firebase (по твоей конфигурации)
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAxLMSDQSPon7NTd9loVRMLNCseBFSOTDc",
   authDomain: "movieclub-aba80.firebaseapp.com",
@@ -16,70 +16,26 @@ const firebaseConfig = {
   measurementId: "G-LQ40KH85NE"
 };
 
-// Инициализация Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+getAnalytics(app);
 
-function App() {
-  const [tab, setTab] = useState("movies");
-
-  return (
-    <div className="app">
-      {/* Верхняя панель */}
-      <header className="header">
-        <div className="title">Свят & Алёна MovieClub</div>
-      </header>
-
-      {/* Основная часть */}
-      <main className="main">
-        {tab === "movies" && <MovieList user={user} />}
-        {tab === "achievements" && <div>Ачивки (вкладка 2)</div>}
-        {tab === "history" && <div>История (вкладка 3)</div>}
-      </main>
-
-      {/* Нижняя навигация */}
-      <nav className="tabbar">
-        <button
-          className={tab === "movies" ? "active" : ""}
-          onClick={() => setTab("movies")}
-        >
-          Фильмы
-        </button>
-        <button
-          className={tab === "achievements" ? "active" : ""}
-          onClick={() => setTab("achievements")}
-        >
-          Ачивки
-        </button>
-        <button
-          className={tab === "history" ? "active" : ""}
-          onClick={() => setTab("history")}
-        >
-          История
-        </button>
-      </nav>
-    </div>
-  );
-}
-// ... (импорт как раньше)
-
+// Два пользователя
 const USERS = [
   {
     id: "svyat",
     name: "Свят",
-    defaultAvatar: "https://i.imgur.com/EhFvB2p.png" // Можешь заменить ссылку
+    defaultAvatar: "https://i.imgur.com/EhFvB2p.png"
   },
   {
     id: "alena",
     name: "Алёна",
-    defaultAvatar: "https://i.imgur.com/pI6c5Oe.png" // Можешь заменить ссылку
+    defaultAvatar: "https://i.imgur.com/pI6c5Oe.png"
   }
 ];
 
 function App() {
   const [tab, setTab] = useState("movies");
   const [user, setUser] = useState(() => {
-    // Пытаемся взять из localStorage
     const saved = localStorage.getItem("movieclubUser");
     return saved ? JSON.parse(saved) : null;
   });
@@ -113,6 +69,7 @@ function App() {
 
   return (
     <div className="app">
+      {/* Верхняя панель */}
       <header className="header">
         <div className="title">Свят & Алёна MovieClub</div>
         <div className="user-profile" onClick={handleLogout} title="Сменить пользователя">
@@ -120,11 +77,15 @@ function App() {
           <span>{user.name}</span>
         </div>
       </header>
+
+      {/* Основная часть */}
       <main className="main">
-        {tab === "movies" && <div>Список фильмов (вкладка 1)</div>}
-        {tab === "achievements" && <div>Ачивки (вкладка 2)</div>}
-        {tab === "history" && <div>История (вкладка 3)</div>}
+        {tab === "movies" && <MovieList user={user} />}
+        {tab === "achievements" && <div>Ачивки (вкладка 2, будет позже)</div>}
+        {tab === "history" && <div>История (вкладка 3, будет позже)</div>}
       </main>
+
+      {/* Нижняя навигация */}
       <nav className="tabbar">
         <button className={tab === "movies" ? "active" : ""} onClick={() => setTab("movies")}>Фильмы</button>
         <button className={tab === "achievements" ? "active" : ""} onClick={() => setTab("achievements")}>Ачивки</button>
@@ -133,4 +94,6 @@ function App() {
     </div>
   );
 }
+
 export default App;
+
