@@ -7,8 +7,32 @@ import {
   orderBy,
   onSnapshot,
   doc,
-  deleteDoc
+  updateDoc,
+  deleteDoc,
+  getDoc
 } from "firebase/firestore";
+
+// Звёздный рейтинг
+function Stars({ value, onChange, editable = true }) {
+  return (
+    <span>
+      {[1,2,3,4,5].map(i => (
+        <span
+          key={i}
+          onClick={() => editable && onChange(i)}
+          style={{
+            cursor: editable ? "pointer" : "default",
+            color: i <= value ? "#ffd86b" : "#495178",
+            fontSize: "1.5em",
+            transition: "0.14s"
+          }}
+        >
+          ★
+        </span>
+      ))}
+    </span>
+  );
+}
 
 export default function MovieList({ user }) {
   const db = getFirestore();
@@ -17,6 +41,10 @@ export default function MovieList({ user }) {
   const [newMovie, setNewMovie] = useState({ title: "", year: "" });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("Запланировано");
+  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [myRating, setMyRating] = useState(0);
+  const [myComment, setMyComment] = useState("");
+  const [updating, setUpdating] = useState(false);
 
   // Реалтайм загрузка фильмов
   useEffect(() => {
@@ -42,6 +70,7 @@ export default function MovieList({ user }) {
       addedBy: user.name,
       addedById: user.id,
       status: "Запланировано",
+      ratings: {},
       createdAt: new Date()
     });
     setNewMovie({ title: "", year: "" });
@@ -54,6 +83,48 @@ export default function MovieList({ user }) {
       await deleteDoc(doc(db, "movies", id));
     }
   }
+  // Открытие окна фильма + загрузка рейтинга
+  async function openMovie(movie) {
+    setSelectedMovie(movie);
+    const db = getFirestore();
+    const docRef = doc(db, "movies", movie.id);
+    const snap = await getDoc(docRef);
+    const data = snap.data();
+    if (data && data.ratings && data.ratings[user.id]) {
+      setMyRating(data.ratings[user.id].stars);
+      setMyComment(data.ratings[user.id].comment);
+    } else {
+      setMyRating(0);
+      setMyComment("");
+    }
+  }
+
+  // Сохранение оценки и комментария
+  async function handleSaveRating() {
+    if (!myRating) return;
+    setUpdating(true);
+    const db = getFirestore();
+    const movieRef = doc(db, "movies", selectedMovie.id);
+    const snap = await getDoc(movieRef);
+    const oldData = snap.data();
+    const newRatings = {
+      ...((oldData && oldData.ratings) || {}),
+      [user.id]: {
+        stars: myRating,
+        comment: myComment
+      }
+    };
+    // Проверяем, оба ли оценили
+    const users = ["svyat", "alena"];
+    const bothRated = users.every(uid => newRatings[uid] && newRatings[uid].stars);
+
+    await updateDoc(movieRef, {
+      ratings: newRatings,
+      status: bothRated ? "Просмотрено" : "Запланировано"
+    });
+    setUpdating(false);
+    setSelectedMovie(null);
+  }
 
   return (
     <div className="movie-list">
@@ -63,7 +134,6 @@ export default function MovieList({ user }) {
           +
         </button>
       </div>
-
       {/* Табы фильтра */}
       <div className="movie-list-tabs" style={{ display: "flex", gap: 12, marginBottom: 12 }}>
         <button
@@ -97,7 +167,6 @@ export default function MovieList({ user }) {
           Просмотрено
         </button>
       </div>
-
       {/* Модалка для добавления */}
       {showAdd && (
         <div className="modal-backdrop">
@@ -124,7 +193,6 @@ export default function MovieList({ user }) {
           </div>
         </div>
       )}
-
       {/* Список фильмов */}
       {loading ? (
         <div style={{ color: "#bbc2f2", marginTop: 32 }}>Загрузка...</div>
@@ -136,7 +204,12 @@ export default function MovieList({ user }) {
           {movies
             .filter(m => m.status === filter)
             .map(m => (
-              <li key={m.id} className="movie-card">
+              <li
+                key={m.id}
+                className="movie-card"
+                style={{ cursor: "pointer" }}
+                onClick={() => openMovie(m)}
+              >
                 <div className="movie-title">
                   {m.title} <span className="movie-year">({m.year})</span>
                 </div>
@@ -156,7 +229,7 @@ export default function MovieList({ user }) {
                         fontWeight: "bold",
                         fontSize: "1.15rem"
                       }}
-                      onClick={() => handleDeleteMovie(m.id)}
+                      onClick={e => { e.stopPropagation(); handleDeleteMovie(m.id); }}
                       title="Удалить фильм"
                     >
                       ×
@@ -166,6 +239,77 @@ export default function MovieList({ user }) {
               </li>
             ))}
         </ul>
+      )}
+
+      {/* Модальное окно фильма */}
+      {selectedMovie && (
+        <div className="modal-backdrop">
+          <div className="modal" style={{ minWidth: 300 }}>
+            <h3>
+              {selectedMovie.title}{" "}
+              <span style={{ fontWeight: 400, color: "#bbc2f2" }}>
+                ({selectedMovie.year})
+              </span>
+            </h3>
+            <div style={{ marginBottom: 10 }}>
+              <span style={{ fontSize: 14, color: "#a5acd7" }}>
+                Добавил: {selectedMovie.addedBy}
+              </span>
+            </div>
+            <div style={{ margin: "14px 0" }}>
+              <b>Твоя оценка:</b>
+              <Stars value={myRating} onChange={setMyRating} editable />
+            </div>
+            <textarea
+              style={{
+                width: "100%",
+                minHeight: 52,
+                background: "#1b1f3a",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                padding: 8,
+                marginTop: 6
+              }}
+              placeholder="Твой комментарий (по желанию)"
+              value={myComment}
+              onChange={e => setMyComment(e.target.value)}
+            />
+            <div className="modal-actions">
+              <button onClick={handleSaveRating} disabled={!myRating || updating}>
+                {updating ? "Сохраняем..." : "Подтвердить"}
+              </button>
+              <button onClick={() => setSelectedMovie(null)} disabled={updating}>
+                Отмена
+              </button>
+            </div>
+            <hr style={{ margin: "18px 0 10px" }} />
+            <div>
+              <b>Оценки:</b>
+              <ul style={{ margin: "8px 0 0 0", padding: 0, listStyle: "none" }}>
+                {["svyat", "alena"].map(uid => {
+                  const u = uid === "svyat" ? "Свят" : "Алёна";
+                  const r = (selectedMovie.ratings && selectedMovie.ratings[uid]);
+                  return (
+                    <li key={uid} style={{ marginBottom: 8 }}>
+                      <span style={{ fontWeight: 500 }}>{u}: </span>
+                      {r ? (
+                        <>
+                          <Stars value={r.stars} editable={false} />{" "}
+                          <span style={{ color: "#b7c5f2", fontSize: 14 }}>
+                            {r.comment && <span style={{ marginLeft: 6 }}>— {r.comment}</span>}
+                          </span>
+                        </>
+                      ) : (
+                        <span style={{ color: "#bbc2f2" }}>Ещё не оценил(а)</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
