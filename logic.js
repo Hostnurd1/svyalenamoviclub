@@ -1,132 +1,155 @@
-// ====== logic.js v2.3 (patched) ======
+/* =================================================
+   MovieClub — logic.js v2.3
+   =================================================
+   ▸ хранит глобальное состояние (tab / filter / search)
+   ▸ обёртки над Firestore-CRUD
+   ▸ главная функция loadAndRenderMovies()
+   ▸ выбор пользователя, переключение фильтров и вкладок
+   ------------------------------------------------- */
 
-// --- Global state ----------------------------------------------------------
-window.currentTab     = 'planned';
-window.currentUser    = localStorage.getItem('mc_user') || '';
-window.currentFilter  = 'all';
-window.currentSearch  = '';
+import {
+  dbAddMovie,
+  dbDeleteMovie,
+  dbUpdateMovie,
+  dbGetMovies
+} from "./firebase.js";
 
-// --- Helpers ---------------------------------------------------------------
-const isSvyat      = user => user === 'Свят';
-const fieldByUser  = (base, user) => isSvyat(user) ? `${base}Svyat` : `${base}Alena`;
+import {
+  renderSkeleton,
+  renderMovieList,
+  renderFilters,
+  showToast
+} from "./ui.js";
 
-// --- Movie CRUD actions ----------------------------------------------------
-window.addMovie = async function () {
-  const title = document.getElementById('new-movie-title').value.trim();
-  const year  = document.getElementById('new-movie-year').value.trim();
+import { renderStats } from "./stats.js";
 
-  if (!title || !window.currentUser) return;
+/* ---------- 1. GLOBAL STATE --------------------------------------------- */
+window.currentTab    = "planned";                           // planned | watched | stats
+window.currentUser   = localStorage.getItem("mc_user") || "";
+window.currentFilter = "all";                               // all | 8+ | withComment | confirmedOnly
+window.currentSearch = "";
+
+/* ---------- 2. HELPERS --------------------------------------------------- */
+const fieldByUser = (base, user) => (user === "Свят" ? `${base}Svyat` : `${base}Alena`);
+
+/* ---------- 3. CRUD-WRAPPERS (UI → Firestore) --------------------------- */
+window.addMovie = async () => {
+  const title = document.getElementById("new-movie-title").value.trim();
+  const year  = document.getElementById("new-movie-year").value.trim();
+
+  if (!title || !window.currentUser) {
+    showToast("Укажи название и выбери пользователя!", "error");
+    return;
+  }
 
   const movieObj = {
     title,
     year: year ? Number(year) : null,
-    status: 'Запланирован',
-    date: new Date().toISOString(),
+    status: "Запланирован",
     addedBy: window.currentUser,
-    scoreSvyat: null,
-    scoreAlena: null,
-    commentSvyat: '',
-    commentAlena: '',
-    emojiSvyat: '',
-    emojiAlena: '',
-    confirmedSvyat: false,
-    confirmedAlena: false
+    scoreSvyat: null,   scoreAlena: null,
+    commentSvyat: "",   commentAlena: "",
+    emojiSvyat: "",     emojiAlena: "",
+    confirmedSvyat: false, confirmedAlena: false
   };
 
   try {
     await dbAddMovie(movieObj);
-    document.getElementById('new-movie-title').value = '';
-    document.getElementById('new-movie-year').value  = '';
+    document.getElementById("new-movie-title").value = "";
+    document.getElementById("new-movie-year").value  = "";
+    showToast("Фильм добавлен!");
     loadAndRenderMovies();
   } catch (e) {
-    console.error('dbAddMovie failed', e);
-    showToast('Ошибка сохранения 😢');
+    console.error(e);
+    showToast("Ошибка сохранения 😢", "error");
   }
 };
 
-window.deleteMovieLogic = async function (id) {
-  await dbDeleteMovie(id);
+window.deleteMovieLogic   = async id        => { await dbDeleteMovie(id);        loadAndRenderMovies(); };
+window.confirmReviewLogic = async (id, u)   => { await dbUpdateMovie(id, { [fieldByUser("confirmed", u)]: true }); loadAndRenderMovies(); };
+window.setCommentLogic    = async (id, u,v) => { await dbUpdateMovie(id, { [fieldByUser("comment",   u)]: v    }); loadAndRenderMovies(); };
+window.setScoreStar       = async (id, u,v) => { await dbUpdateMovie(id, { [fieldByUser("score",     u)]: v    }); loadAndRenderMovies(); navigator.vibrate?.(20); };
+
+/* ---------- 4. MAIN LOADER ---------------------------------------------- */
+window.loadAndRenderMovies = async () => {
+  renderSkeleton();
+
+  let movies = [];
+  try {
+    movies = await dbGetMovies();
+  } catch (e) {
+    console.error(e);
+    showToast("Ошибка загрузки 😢", "error");
+    document.getElementById("movie-list").innerHTML =
+      "<li class='movie' style='text-align:center;color:#f66;padding:30px 0'>Не удалось получить данные</li>";
+    return;
+  }
+
+  /* вкладки */
+  if (currentTab === "planned") movies = movies.filter(m => m.status === "Запланирован");
+  if (currentTab === "watched") movies = movies.filter(m => m.status === "Просмотрен");
+
+  /* поиск */
+  if (currentSearch) {
+    const s = currentSearch;
+    movies = movies.filter(m => (m.title || "").toLowerCase().includes(s));
+  }
+
+  /* фильтры */
+  if (currentFilter === "8+")              movies = movies.filter(m => (m.scoreSvyat >= 8) || (m.scoreAlena >= 8));
+  if (currentFilter === "withComment")     movies = movies.filter(m => (m.commentSvyat?.length) || (m.commentAlena?.length));
+  if (currentFilter === "confirmedOnly")   movies = movies.filter(m => m.confirmedSvyat && m.confirmedAlena);
+
+  renderMovieList(movies, currentUser);
+  if (currentTab === "stats") renderStats(movies);
+};
+
+/* ---------- 5. UI-SWITCHES ---------------------------------------------- */
+window.switchTab = tab => {
+  if (currentTab === tab) return;
+  currentTab = tab;
+  document.querySelectorAll(".tab").forEach(btn =>
+    btn.classList.toggle("active", btn.dataset.tab === tab));
   loadAndRenderMovies();
 };
 
-window.confirmReviewLogic = async function (id, user) {
-  await dbUpdateMovie(id, { [fieldByUser('confirmed', user)]: true });
+window.setFilter = f => {
+  currentFilter = f;
+  renderFilters(f);
   loadAndRenderMovies();
 };
 
-window.setCommentLogic = async function (id, user, value) {
-  await dbUpdateMovie(id, { [fieldByUser('comment', user)]: value });
+window.setSearch = val => {
+  currentSearch = val.trim().toLowerCase();
   loadAndRenderMovies();
 };
 
-window.setScoreStar = async function (id, user, value) {
-  await dbUpdateMovie(id, { [fieldByUser('score', user)]: value });
-  loadAndRenderMovies();
-  navigator.vibrate?.(20);
-};
+window.chooseUser = (user, fromModal = false) => {
+  currentUser = user;
+  localStorage.setItem("mc_user", user);
 
-// --- View / state switches --------------------------------------------------
-window.switchTab = function (tab) {
-  if (window.currentTab === tab) return;
-  window.currentTab = tab;
-  document.querySelectorAll('.tab').forEach(btn =>
-    btn.classList.toggle('active', btn.dataset.tab === tab)
-  );
-  loadAndRenderMovies();
-};
-
-window.setFilter = function (filter) {
-  window.currentFilter = filter;
-  renderFilters(filter);
-  loadAndRenderMovies();
-};
-
-window.setSearch = function (val) {
-  window.currentSearch = val.trim().toLowerCase();
-  loadAndRenderMovies();
-};
-
-window.chooseUser = function (user, fromModal = false) {
-  window.currentUser = user;
-  localStorage.setItem('mc_user', user);
-
-  document.querySelectorAll('.avatar-btn').forEach(btn =>
-    btn.classList.toggle('active',
-      btn.querySelector('.avatar-name').textContent === user)
-  );
+  document.querySelectorAll(".avatar-btn").forEach(btn =>
+    btn.classList.toggle("active",
+      btn.querySelector(".avatar-name").textContent === user));
 
   if (fromModal) {
-    document.getElementById('user-modal').style.display = 'none';
-    document.querySelector('.container').style.filter        = '';
-    document.querySelector('.container').style.pointerEvents = '';
+    document.getElementById("user-modal").style.display = "none";
+    const c = document.querySelector(".container");
+    c.style.filter = ""; c.style.pointerEvents = "auto";
   }
 
   loadAndRenderMovies();
 };
 
-window.showModal = function () {
-  document.getElementById('user-modal').style.display = 'flex';
-  document.querySelector('.container').style.filter        = 'blur(4px)';
-  document.querySelector('.container').style.pointerEvents = 'none';
-};
-
-// --- Search & add quick handlers -------------------------------------------
-document.getElementById('movie-search')
-  .addEventListener('input', e => setSearch(e.target.value));
-
-['new-movie-title', 'new-movie-year'].forEach(id =>
-  document.getElementById(id).addEventListener('keydown', e => {
-    if (e.key === 'Enter') addMovie();
-  })
-);
-
-['btn-svyat', 'btn-alena'].forEach(id =>
-  document.getElementById(id).addEventListener('click', () =>
-    chooseUser(id === 'btn-svyat' ? 'Свят' : 'Алёна'))
-);
-
-// --- Startup ---------------------------------------------------------------
-window.addEventListener('load', () => {
-  if (!window.currentUser) showModal();
-  else loadAndRenderMovies();
+/* ---------- 6. ON-BOOT --------------------------------------------------- */
+window.addEventListener("load", () => {
+  if (!currentUser) {
+    document.getElementById("user-modal").style.display = "flex";
+    const c = document.querySelector(".container");
+    c.style.filter = "blur(4px)";
+    c.style.pointerEvents = "none";
+  } else {
+    loadAndRenderMovies();
+  }
 });
+
