@@ -1,24 +1,46 @@
-// MovieList.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  query,
+  orderBy,
+  onSnapshot
+} from "firebase/firestore";
 
 export default function MovieList({ user }) {
+  const db = getFirestore();
   const [movies, setMovies] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newMovie, setNewMovie] = useState({ title: "", year: "" });
+  const [loading, setLoading] = useState(true);
 
-  // Добавление фильма в список
-  function handleAddMovie() {
+  // Получение фильмов в реалтайме
+  useEffect(() => {
+    const q = query(collection(db, "movies"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, snapshot => {
+      setMovies(
+        snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+      );
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [db]);
+
+  // Добавление фильма
+  async function handleAddMovie() {
     if (!newMovie.title.trim() || !newMovie.year.trim()) return;
-    setMovies([
-      ...movies,
-      {
-        id: Date.now(),
-        title: newMovie.title,
-        year: newMovie.year,
-        addedBy: user.name,
-        status: "Запланировано"
-      }
-    ]);
+    await addDoc(collection(db, "movies"), {
+      title: newMovie.title.trim(),
+      year: newMovie.year.trim(),
+      addedBy: user.name,
+      addedById: user.id,
+      status: "Запланировано",
+      createdAt: new Date()
+    });
     setNewMovie({ title: "", year: "" });
     setShowAdd(false);
   }
@@ -27,7 +49,6 @@ export default function MovieList({ user }) {
     <div className="movie-list">
       <div className="movie-list-header">
         <h2>Список фильмов</h2>
-        {/* Плавающая кнопка "Добавить" */}
         <button className="fab" onClick={() => setShowAdd(true)} title="Добавить фильм">
           +
         </button>
@@ -59,18 +80,22 @@ export default function MovieList({ user }) {
       )}
 
       {/* Список фильмов */}
-      <ul>
-        {movies.length === 0 && <li className="empty">Нет фильмов. Добавьте первый!</li>}
-        {movies.map(m => (
-          <li key={m.id} className="movie-card">
-            <div className="movie-title">{m.title} <span className="movie-year">({m.year})</span></div>
-            <div className="movie-meta">
-              <span>Добавил: {m.addedBy}</span>
-              <span className={`status ${m.status === "Запланировано" ? "planned" : "watched"}`}>{m.status}</span>
-            </div>
-          </li>
-        ))}
-      </ul>
+      {loading ? (
+        <div style={{ color: "#bbc2f2", marginTop: 32 }}>Загрузка...</div>
+      ) : (
+        <ul>
+          {movies.length === 0 && <li className="empty">Нет фильмов. Добавьте первый!</li>}
+          {movies.map(m => (
+            <li key={m.id} className="movie-card">
+              <div className="movie-title">{m.title} <span className="movie-year">({m.year})</span></div>
+              <div className="movie-meta">
+                <span>Добавил: {m.addedBy}</span>
+                <span className={`status ${m.status === "Запланировано" ? "planned" : "watched"}`}>{m.status}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
