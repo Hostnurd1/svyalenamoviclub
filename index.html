@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Свят & Алёна MovieClub v2.2</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Стили -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,7 +16,7 @@
     </div>
   </div>
 
-  <!-- Панель выбора пользователя — только две аватарки! -->
+  <!-- Выбор пользователя: только две аватарки -->
   <div class="user-switch">
     <button class="avatar-btn" id="btn-svyat" onclick="chooseUser('Свят')">
       <span class="avatar-circle">С</span>
@@ -29,20 +28,20 @@
     </button>
   </div>
 
-  <!-- Вкладки (табы) -->
+  <!-- Табы (вкладки) -->
   <div class="nav-tabs">
     <button class="tab active" data-tab="planned" onclick="switchTab('planned')">Запланировано</button>
     <button class="tab" data-tab="watched" onclick="switchTab('watched')">Просмотрено</button>
     <button class="tab" data-tab="stats" onclick="switchTab('stats')">Статистика</button>
   </div>
 
-  <!-- Фильтры и поиск -->
+  <!-- Фильтры-чекбоксы и поиск -->
   <div class="filters-search">
     <div class="filters">
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">Все</button>
-      <button class="filter-btn" data-filter="8+" onclick="setFilter('8+')">&#11088; 8+</button>
-      <button class="filter-btn" data-filter="withComment" onclick="setFilter('withComment')">&#128172; С комментарием</button>
-      <button class="filter-btn" data-filter="confirmedOnly" onclick="setFilter('confirmedOnly')">&#9989; Подтвержденные</button>
+      <button class="filter-btn active" data-filter="all"><span class="filter-icon">🌈</span> Все</button>
+      <button class="filter-btn" data-filter="8+"><span class="filter-icon">★</span> 8+</button>
+      <button class="filter-btn" data-filter="withComment"><span class="filter-icon">💬</span> С комментарием</button>
+      <button class="filter-btn" data-filter="confirmedOnly"><span class="filter-icon">✔</span> Подтвержденные</button>
     </div>
     <input type="text" id="movie-search" placeholder="Поиск по названию...">
   </div>
@@ -52,24 +51,22 @@
 
   <div class="container">
     <h1>Свят & Алёна MovieClub</h1>
-
     <!-- Форма добавления фильма -->
     <div class="add-movie">
       <input type="text" id="new-movie-title" placeholder="Название фильма...">
       <input type="number" id="new-movie-year" placeholder="Год" min="1900" max="2100" style="width:80px;">
       <button class="primary" onclick="addMovie()">Добавить</button>
     </div>
-
-    <!-- Кнопка рандомайзера -->
+    <!-- CTA-кнопка -->
     <div id="randomizer-block">
-      <button class="random-btn" onclick="randomMovie()">🎲 Что смотреть?</button>
+      <button class="random-btn cta-big" onclick="randomMovie()">
+        <span class="cta-icon">🎲</span> Что смотреть?
+      </button>
       <div id="random-out"></div>
     </div>
-
-    <!-- Список фильмов (рендерится через JS) -->
+    <!-- Список фильмов (динамически через JS) -->
     <ul class="movie-list" id="movie-list"></ul>
-
-    <!-- Статистика (показывается на вкладке "Статистика") -->
+    <!-- Статистика (на вкладке "Статистика") -->
     <div id="stats-block" style="margin-top:24px;"></div>
   </div>
 
@@ -85,3 +82,4 @@
   <script src="main.js"></script>
 </body>
 </html>
+
