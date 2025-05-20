@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Свят & Алёна MovieClub v2.0</title>
+  <title>Свят & Алёна MovieClub v2.1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Стили -->
   <link rel="stylesheet" href="style.css">
@@ -21,10 +21,10 @@
   <div class="user-switch">
     <button id="btn-svyat" onclick="chooseUser('Свят')">Я — Свят</button>
     <button id="btn-alena" onclick="chooseUser('Алёна')">Я — Алёна</button>
-    <button id="btn-switch" class="switch-btn" onclick="showModal()" title="Сменить пользователя">Сменить</button>
+    <button id="btn-switch" class="switch-btn" onclick="showModal()" title="Сменить пользователя">&#9881;</button>
   </div>
 
-  <!-- Навигация по вкладкам -->
+  <!-- Вкладки (табы) -->
   <div class="nav-tabs">
     <button class="tab active" data-tab="planned" onclick="switchTab('planned')">Запланировано</button>
     <button class="tab" data-tab="watched" onclick="switchTab('watched')">Просмотрено</button>
@@ -34,39 +34,45 @@
   <!-- Фильтры и поиск -->
   <div class="filters-search">
     <div class="filters">
-      <button class="filter-btn" data-filter="all" onclick="setFilter('all')">Все</button>
-      <button class="filter-btn" data-filter="8+" onclick="setFilter('8+')">8+</button>
-      <button class="filter-btn" data-filter="withComment" onclick="setFilter('withComment')">С комментарием</button>
-      <button class="filter-btn" data-filter="confirmedOnly" onclick="setFilter('confirmedOnly')">Подтвержденные</button>
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">Все</button>
+      <button class="filter-btn" data-filter="8+" onclick="setFilter('8+')">&#11088; 8+</button>
+      <button class="filter-btn" data-filter="withComment" onclick="setFilter('withComment')">&#128172; С комментарием</button>
+      <button class="filter-btn" data-filter="confirmedOnly" onclick="setFilter('confirmedOnly')">&#9989; Подтвержденные</button>
     </div>
     <input type="text" id="movie-search" placeholder="Поиск по названию...">
   </div>
 
   <!-- Версия приложения -->
-  <div class="version">v2.0</div>
+  <div class="version">v2.1</div>
 
   <div class="container">
     <h1>Свят & Алёна MovieClub</h1>
+
+    <!-- Форма добавления фильма -->
     <div class="add-movie">
       <input type="text" id="new-movie-title" placeholder="Название фильма...">
       <input type="number" id="new-movie-year" placeholder="Год" min="1900" max="2100" style="width:80px;">
-      <button onclick="addMovie()">Добавить</button>
+      <button class="primary" onclick="addMovie()">Добавить</button>
     </div>
+
+    <!-- Кнопка рандомайзера -->
     <div id="randomizer-block">
-      <button onclick="randomMovie()" class="random-btn">🎲 Что смотреть?</button>
+      <button class="random-btn" onclick="randomMovie()">🎲 Что смотреть?</button>
       <div id="random-out"></div>
     </div>
-    <!-- Список фильмов (формируется динамически) -->
+
+    <!-- Список фильмов (рендерится через JS) -->
     <ul class="movie-list" id="movie-list"></ul>
-    <!-- Статистика (видна только на вкладке "Статистика") -->
+
+    <!-- Статистика (показывается на вкладке "Статистика") -->
     <div id="stats-block" style="margin-top:24px;"></div>
   </div>
 
-  <!-- Firebase SDK (всегда до своих файлов!) -->
+  <!-- Firebase SDK (подключать до своих файлов!) -->
   <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
 
-  <!-- Твои модули -->
+  <!-- Модули приложения -->
   <script src="firebase.js"></script>
   <script src="ui.js"></script>
   <script src="logic.js"></script>
