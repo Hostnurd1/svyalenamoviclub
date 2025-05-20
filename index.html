@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Свят & Алёна MovieClub v2.1</title>
+  <title>Свят & Алёна MovieClub v2.2</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Стили -->
   <link rel="stylesheet" href="style.css">
@@ -17,11 +17,16 @@
     </div>
   </div>
 
-  <!-- Панель выбора и смены пользователя -->
+  <!-- Панель выбора пользователя — только две аватарки! -->
   <div class="user-switch">
-    <button id="btn-svyat" onclick="chooseUser('Свят')">Я — Свят</button>
-    <button id="btn-alena" onclick="chooseUser('Алёна')">Я — Алёна</button>
-    <button id="btn-switch" class="switch-btn" onclick="showModal()" title="Сменить пользователя">&#9881;</button>
+    <button class="avatar-btn" id="btn-svyat" onclick="chooseUser('Свят')">
+      <span class="avatar-circle">С</span>
+      <span class="avatar-name">Свят</span>
+    </button>
+    <button class="avatar-btn" id="btn-alena" onclick="chooseUser('Алёна')">
+      <span class="avatar-circle">А</span>
+      <span class="avatar-name">Алёна</span>
+    </button>
   </div>
 
   <!-- Вкладки (табы) -->
@@ -43,7 +48,7 @@
   </div>
 
   <!-- Версия приложения -->
-  <div class="version">v2.1</div>
+  <div class="version">v2.2</div>
 
   <div class="container">
     <h1>Свят & Алёна MovieClub</h1>
@@ -68,7 +73,7 @@
     <div id="stats-block" style="margin-top:24px;"></div>
   </div>
 
-  <!-- Firebase SDK (подключать до своих файлов!) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
 
