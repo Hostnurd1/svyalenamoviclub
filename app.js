@@ -1,4 +1,5 @@
 // App.js
+import MovieList from "./MovieList";
 import React, { useState } from "react";
 import "./App.css";
 import { initializeApp } from "firebase/app";
@@ -31,7 +32,7 @@ function App() {
 
       {/* Основная часть */}
       <main className="main">
-        {tab === "movies" && <div>Список фильмов (вкладка 1)</div>}
+        {tab === "movies" && <MovieList user={user} />}
         {tab === "achievements" && <div>Ачивки (вкладка 2)</div>}
         {tab === "history" && <div>История (вкладка 3)</div>}
       </main>
