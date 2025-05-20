@@ -1,113 +1,67 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Свят & Алёна MovieClub v2.3</title>
+<!doctype html><html lang="ru"><head>
+<meta charset="utf-8">
+<title>Свят & Алёна MovieClub v2.3</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="stylesheet" href="style.css">
+<style>body{padding-top:env(safe-area-inset-top)} #random-out{max-width:85vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}</style>
+</head><body>
+<!-- choose-user modal -->
+<div id="user-modal" style="display:none">
+  <div class="modal-content">
+    <div class="modal-title">Кто вы?</div>
+    <button class="modal-btn" onclick="chooseUser('Свят',true)">Я — Свят</button>
+    <button class="modal-btn" onclick="chooseUser('Алёна',true)">Я — Алёна</button>
+  </div>
+</div>
 
-  <!-- адаптив + safe-area + PWA -->
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<div class="user-switch">
+  <button id="btn-svyat"  class="avatar-btn"><span class="avatar-circle">С</span><span class="avatar-name">Свят</span></button>
+  <button id="btn-alena" class="avatar-btn"><span class="avatar-circle">А</span><span class="avatar-name">Алёна</span></button>
+</div>
 
-  <!-- основной CSS -->
-  <link rel="stylesheet" href="style.css">
+<nav class="nav-tabs">
+  <button class="tab active" data-tab="planned">Запланировано</button>
+  <button class="tab"        data-tab="watched">Просмотрено</button>
+  <button class="tab"        data-tab="stats">Статистика</button>
+</nav>
 
-  <!-- небольшие глобальные фиксы (можно вынести в style.css) -->
-  <style>
-    /* не даём сайту упираться в «чёлку» / динамический остров iOS */
-    body { padding-top: env(safe-area-inset-top); }
+<section class="filters">
+  <button class="filter-btn active" data-filter="all"><span class="filter-icon">🌈</span>Все</button>
+  <button class="filter-btn" data-filter="8+"><span class="filter-icon">★</span>8+</button>
+  <button class="filter-btn" data-filter="withComment"><span class="filter-icon">💬</span>С комментарием</button>
+  <button class="filter-btn" data-filter="confirmedOnly"><span class="filter-icon">✔️</span>Подтверждённые</button>
+</section>
 
-    /* toast / рандом-вывод поверх контента, не двигает layout */
-    #random-out{
-      position:fixed;
-      top:16px; left:50%; transform:translateX(-50%);
-      z-index:1000;
-      pointer-events:none; /* чтобы клики проходили сквозь */
-    }
-  </style>
-</head>
-<body>
+<input id="movie-search" placeholder="Поиск по названию…">
+<div class="version" id="versionLabel">v2.3</div>
 
-  <!-- Модалка выбора пользователя (по умолчанию скрыта) -->
-  <div id="user-modal" style="display:none;">
-    <div class="modal-content">
-      <div class="modal-title">Кто вы?</div>
-      <button id="modal-btn-svyat"  class="modal-btn" onclick="chooseUser('Свят',  true)">Я — Свят</button>
-      <button id="modal-btn-alena" class="modal-btn" onclick="chooseUser('Алёна', true)">Я — Алёна</button>
-    </div>
+<main class="container" id="container">
+  <h1 class="text-center">Свят & Алёна MovieClub</h1>
+
+  <div class="add-movie">
+    <input id="new-movie-title" placeholder="Название фильма…">
+    <input id="new-movie-year"  type="number" min="1900" max="2100" placeholder="Год">
+    <button id="add-btn" class="primary" onclick="addMovie()">Добавить</button>
   </div>
 
-  <!-- Переключатель пользователя: две аватар-кнопки -->
-  <div class="user-switch">
-    <button class="avatar-btn" id="btn-svyat"  onclick="chooseUser('Свят')">
-      <span class="avatar-circle">С</span><span class="avatar-name">Свят</span>
-    </button>
-    <button class="avatar-btn" id="btn-alena" onclick="chooseUser('Алёна')">
-      <span class="avatar-circle">А</span><span class="avatar-name">Алёна</span>
-    </button>
-  </div>
-
-  <!-- Навигационные табы -->
-  <nav class="nav-tabs">
-    <button class="tab active" data-tab="planned"  onclick="switchTab('planned')">Запланировано</button>
-    <button class="tab"        data-tab="watched"  onclick="switchTab('watched')">Просмотрено</button>
-    <button class="tab"        data-tab="stats"    onclick="switchTab('stats')">Статистика</button>
-  </nav>
-
-  <!-- Фильтры + поиск -->
-  <section class="filters-search">
-    <div class="filters">
-      <button class="filter-btn active" data-filter="all"            onclick="setFilter('all')"           ><span class="filter-icon">🌈</span> Все</button>
-      <button class="filter-btn"        data-filter="8+"             onclick="setFilter('8+')"            ><span class="filter-icon">★</span> 8+</button>
-      <button class="filter-btn"        data-filter="withComment"    onclick="setFilter('withComment')"   ><span class="filter-icon">💬</span> С&nbsp;комментарием</button>
-      <button class="filter-btn"        data-filter="confirmedOnly"  onclick="setFilter('confirmedOnly')" ><span class="filter-icon">✔️</span> Подтверждённые</button>
-    </div>
-
-    <input type="text"
-           id="movie-search"
-           placeholder="Поиск по названию...">
+  <section id="randomizer-block">
+    <button id="randomBtn" class="random-btn"><span class="cta-icon">🎲</span>Что смотреть?</button>
+    <div id="random-out"></div>
   </section>
 
-  <!-- Версия приложения -->
-  <div class="version">v2.3</div>
+  <ul id="movie-list" class="movie-list"></ul>
+  <section id="stats-block" style="margin-top:24px"></section>
+</main>
 
-  <!-- Основной контент -->
-  <main class="container">
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js" defer></script>
 
-    <h1>Свят & Алёна MovieClub</h1>
-
-    <!-- Форма добавления фильма -->
-    <div class="add-movie">
-      <input type="text"    id="new-movie-title" placeholder="Название фильма...">
-      <input type="number"  id="new-movie-year"  placeholder="Год" min="1900" max="2100" style="width:80px;">
-      <button class="primary" onclick="addMovie()">Добавить</button>
-    </div>
-
-    <!-- CTA-блок со случайным фильмом -->
-    <section id="randomizer-block">
-      <button class="random-btn cta-big" onclick="randomMovie()">
-        <span class="cta-icon">🎲</span> Что смотреть?
-      </button>
-      <div id="random-out"></div>
-    </section>
-
-    <!-- Список фильмов -->
-    <ul class="movie-list" id="movie-list"></ul>
-
-    <!-- Блок статистики -->
-    <section id="stats-block" style="margin-top:24px;"></section>
-  </main>
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"        defer></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js" defer></script>
-
-  <!-- Модули приложения (важно — в таком порядке) -->
-  <script src="firebase.js" defer></script>
-  <script src="ui.js"      defer></script>
-  <script src="logic.js"   defer></script>
-  <script src="stats.js"   defer></script>
-  <script src="main.js"    defer></script>
-
-</body>
-</html>
-
+<!-- modules -->
+<script type="module" src="firebase.js" defer></script>
+<script type="module" src="stats.js"   defer></script>
+<script type="module" src="ui.js"      defer></script>
+<script type="module" src="logic.js"   defer></script>
+<script type="module" src="main.js"    defer></script>
+</body></html>
 
