@@ -17,7 +17,11 @@
   </style>
 </head>
 <body>
-<div class="container">
+<div style="margin: 32px auto 10px auto; text-align: center;">
+  <button id="btn-svyat" onclick="chooseUser('Свят')" style="margin-right:15px;">Я — Свят</button>
+  <button id="btn-alena" onclick="chooseUser('Алёна')">Я — Алёна</button>
+</div>
+  <div class="container">
   <h1>Свят & Алёна MovieClub</h1>
   <div class="add-movie">
     <input type="text" id="new-movie-title" placeholder="Добавить фильм...">
@@ -40,7 +44,16 @@
   };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
-
+  let currentUser = localStorage.getItem('mc_user') || '';
+function chooseUser(user) {
+  currentUser = user;
+  localStorage.setItem('mc_user', user);
+  // Подсвечивать выбранную кнопку:
+  document.getElementById('btn-svyat').style.background = (user === 'Свят') ? '#5e81f4' : '';
+  document.getElementById('btn-svyat').style.color = (user === 'Свят') ? '#fff' : '';
+  document.getElementById('btn-alena').style.background = (user === 'Алёна') ? '#5e81f4' : '';
+  document.getElementById('btn-alena').style.color = (user === 'Алёна') ? '#fff' : '';
+}
   async function addMovie() {
     const title = document.getElementById('new-movie-title').value.trim();
     if (!title) return;
@@ -52,7 +65,6 @@
     document.getElementById('new-movie-title').value = '';
     loadMovies();
   }
-
   async function loadMovies() {
     const res = await db.collection('movies').orderBy('date', 'desc').get();
     let html = '';
@@ -65,8 +77,11 @@
     });
     document.getElementById('movie-list').innerHTML = html;
   }
-
   loadMovies();
+  // При загрузке страницы восстанавливаем выбор пользователя
+if (currentUser) {
+  chooseUser(currentUser);
+}
 </script>
 </body>
 </html>
