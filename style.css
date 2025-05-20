@@ -198,3 +198,122 @@ button:hover, .modal-btn:hover, .random-btn:hover, .switch-btn:hover {
   color: #a8252b;
   transform: scale(1.12) rotate(-8deg);
 }
+.movie-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.movie {
+  background: #f2f7fe;
+  margin-bottom: 18px;
+  border-radius: 15px;
+  padding: 16px 16px 20px 16px;
+  position: relative;
+  box-shadow: 0 1.5px 10px #5e81f410, 0 0.5px 3px #e4e8ff22;
+  transition: box-shadow .18s;
+  min-height: 65px;
+}
+.movie:hover {
+  box-shadow: 0 4px 18px #8db7fd3d, 0 1.5px 9px #e4e8ff42;
+}
+.movie-title {
+  font-size: 19px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #394e8f;
+  letter-spacing: .1px;
+  line-height: 1.25;
+}
+.mini {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 5px;
+  display: inline-block;
+}
+.movie > div {
+  margin-bottom: 7px;
+}
+.movie b {
+  font-weight: 700;
+  color: #3d4376;
+  margin-right: 3px;
+}
+
+input[type="number"], .movie input[type="text"][maxlength="2"] {
+  border: 1px solid #bdd1fa;
+  border-radius: 8px;
+  padding: 6px;
+  font-size: 16px;
+  margin: 3px 7px 3px 0;
+  width: 37px;
+  background: #f6f8fc;
+  transition: border .17s, background .18s;
+}
+input[type="number"]:focus, .movie input[type="text"][maxlength="2"]:focus {
+  border: 1.5px solid #5e81f4;
+  background: #eef5ff;
+}
+input[disabled], textarea[disabled] {
+  background: #e7e7e7 !important;
+  color: #aaa !important;
+  cursor: not-allowed;
+}
+
+textarea {
+  width: 144px;
+  resize: vertical;
+  min-height: 32px;
+  max-height: 140px;
+  font-size: 15px;
+  border-radius: 9px;
+  border: 1px solid #bdd1fa;
+  margin-bottom: 3px;
+  padding: 7px 8px;
+  background: #f6f8fc;
+  transition: border .17s, background .18s;
+}
+textarea:focus {
+  border: 1.5px solid #5e81f4;
+  background: #eef5ff;
+}
+
+.show-more {
+  color: #5e81f4;
+  font-size: 13px;
+  cursor: pointer;
+  margin-left: 4px;
+  text-decoration: underline;
+  display: inline-block;
+  transition: color .16s;
+}
+.show-more:hover {
+  color: #3e5cb5;
+}
+
+.avg-score {
+  background: #ffe59d;
+  color: #6d5c00;
+  border-radius: 8px;
+  padding: 2px 14px;
+  margin-top: 7px;
+  display: inline-block;
+  font-weight: 800;
+  font-size: 1.07rem;
+  letter-spacing: .07em;
+  box-shadow: 0 1px 6px #fff3a040;
+}
+
+/* UX для “Алёна ещё не оценила” и др. */
+.important-note {
+  color: #fb3640;
+  font-size: 13px;
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+@media (max-width:600px) {
+  .movie { padding: 10px 6px 15px 6px; }
+  .movie-title { font-size: 15px; }
+  textarea { width: 98%; font-size: 14px;}
+  input[type="number"], .movie input[type="text"][maxlength="2"] { width: 32px; font-size: 14px;}
+}
