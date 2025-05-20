@@ -1,6 +1,9 @@
-// ====== firebase.js (MovieClub v2.2) ======
+// ===== firebase.js (MovieClub v2.3) =====
 
-// 1. Инициализация Firebase
+// 1. SDK init (compat-layer, чтобы не ломать старый код)
+import firebase from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js";
+import "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js";
+
 const firebaseConfig = {
   apiKey: "AIzaSyAxLMSDQSPon7NTd9loVRMLNCseBFSOTDc",
   authDomain: "movieclub-aba80.firebaseapp.com",
@@ -10,30 +13,25 @@ const firebaseConfig = {
   appId: "1:747897349535:web:bd29be3880dbcffac749aa",
   measurementId: "G-LQ40KH85NE"
 };
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
-// 2. CRUD-функции для фильмов
+const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
+const db  = app.firestore();
+const { FieldValue } = firebase.firestore;
 
-// Добавить фильм
-async function dbAddMovie(movieObj) {
-  return db.collection('movies').add(movieObj);
+// 2. CRUD helpers (экспортируем явно)
+export async function dbAddMovie(movieObj){
+  // date — серверный timestamp, чтобы не падать на sort
+  return db.collection("movies")
+           .add({ ...movieObj, date: FieldValue.serverTimestamp() });
+}
+export async function dbDeleteMovie(id){
+  return db.collection("movies").doc(id).delete();
+}
+export async function dbUpdateMovie(id, fields){
+  return db.collection("movies").doc(id).update(fields);
+}
+export async function dbGetMovies(){
+  const snap = await db.collection("movies").orderBy("date","desc").get();
+  return snap.docs.map(d => ({ id:d.id, ...d.data() }));
 }
 
-// Удалить фильм
-async function dbDeleteMovie(id) {
-  return db.collection('movies').doc(id).delete();
-}
-
-// Обновить фильм
-async function dbUpdateMovie(id, fields) {
-  return db.collection('movies').doc(id).update(fields);
-}
-
-// Получить список фильмов
-async function dbGetMovies() {
-  const res = await db.collection('movies').orderBy('date', 'desc').get();
-  const arr = [];
-  res.forEach(doc => arr.push({ id: doc.id, ...doc.data() }));
-  return arr;
-}
