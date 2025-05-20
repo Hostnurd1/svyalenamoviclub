@@ -1,85 +1,123 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Свят & Алёна MovieClub v2.2</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Свят & Алёна MovieClub v2.3</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Совместный кинодневник Свята и Алёны – планируйте, смотрите, оценивайте фильмы." />
+
+  <!-- основная таблица стилей -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- безопасная зона для iPhone (dynamic island / notch) -->
+  <style>
+    body {
+      padding-top: env(safe-area-inset-top);
+    }
+  </style>
 </head>
 <body>
-  <!-- Модалка выбора пользователя -->
-  <div id="user-modal">
+  <!-- Модалка выбора пользователя (открывается при первом заходе или смене аккаунта) -->
+  <div id="user-modal" class="user-modal" style="display:none;">
     <div class="modal-content">
-      <div class="modal-title">Кто вы?</div>
-      <button id="modal-btn-svyat" class="modal-btn" onclick="chooseUser('Свят',true)">Я — Свят</button>
-      <button id="modal-btn-alena" class="modal-btn" onclick="chooseUser('Алёна',true)">Я — Алёна</button>
+      <h2 class="modal-title">Кто вы?</h2>
+      <button id="modal-btn-svyat" class="modal-btn">Я — Свят</button>
+      <button id="modal-btn-alena" class="modal-btn">Я — Алёна</button>
     </div>
   </div>
 
-  <!-- Выбор пользователя: только две аватарки -->
+  <!-- Текущий пользователь (аватар‑переключатель) -->
   <div class="user-switch">
-    <button class="avatar-btn" id="btn-svyat" onclick="chooseUser('Свят')">
+    <button class="avatar-btn" id="btn-svyat">
       <span class="avatar-circle">С</span>
       <span class="avatar-name">Свят</span>
     </button>
-    <button class="avatar-btn" id="btn-alena" onclick="chooseUser('Алёна')">
+    <button class="avatar-btn" id="btn-alena">
       <span class="avatar-circle">А</span>
       <span class="avatar-name">Алёна</span>
     </button>
   </div>
 
-  <!-- Табы (вкладки) -->
-  <div class="nav-tabs">
-    <button class="tab active" data-tab="planned" onclick="switchTab('planned')">Запланировано</button>
-    <button class="tab" data-tab="watched" onclick="switchTab('watched')">Просмотрено</button>
-    <button class="tab" data-tab="stats" onclick="switchTab('stats')">Статистика</button>
-  </div>
+  <!-- Вкладки навигации -->
+  <nav class="nav-tabs">
+    <button class="tab active" data-tab="planned">Запланировано</button>
+    <button class="tab" data-tab="watched">Просмотрено</button>
+    <button class="tab" data-tab="stats">Статистика</button>
+  </nav>
 
-  <!-- Фильтры-чекбоксы и поиск -->
-  <div class="filters-search">
+  <!-- Фильтры и поиск -->
+  <section class="filters-search">
     <div class="filters">
       <button class="filter-btn active" data-filter="all"><span class="filter-icon">🌈</span> Все</button>
       <button class="filter-btn" data-filter="8+"><span class="filter-icon">★</span> 8+</button>
       <button class="filter-btn" data-filter="withComment"><span class="filter-icon">💬</span> С комментарием</button>
-      <button class="filter-btn" data-filter="confirmedOnly"><span class="filter-icon">✔</span> Подтвержденные</button>
+      <button class="filter-btn" data-filter="confirmedOnly"><span class="filter-icon">✔️</span> Подтверждённые</button>
     </div>
-    <input type="text" id="movie-search" placeholder="Поиск по названию...">
-  </div>
+
+    <label class="sr-only" for="movie-search">Поиск по названию</label>
+    <input
+      type="text"
+      id="movie-search"
+      placeholder="Поиск по названию..."
+      autocomplete="off"
+    />
+  </section>
 
   <!-- Версия приложения -->
-  <div class="version">v2.2</div>
+  <small class="version">v2.3</small>
 
-  <div class="container">
+  <!-- Основной контент -->
+  <main class="container">
     <h1>Свят & Алёна MovieClub</h1>
-    <!-- Форма добавления фильма -->
-    <div class="add-movie">
-      <input type="text" id="new-movie-title" placeholder="Название фильма...">
-      <input type="number" id="new-movie-year" placeholder="Год" min="1900" max="2100" style="width:80px;">
-      <button class="primary" onclick="addMovie()">Добавить</button>
-    </div>
-    <!-- CTA-кнопка -->
-    <div id="randomizer-block">
-      <button class="random-btn cta-big" onclick="randomMovie()">
+
+    <!-- Добавление фильма -->
+    <form class="add-movie" onsubmit="return false;">
+      <label class="sr-only" for="new-movie-title">Название фильма</label>
+      <input type="text" id="new-movie-title" placeholder="Название фильма..." required />
+
+      <label class="sr-only" for="new-movie-year">Год выпуска</label>
+      <input
+        type="number"
+        id="new-movie-year"
+        placeholder="Год"
+        min="1900"
+        max="2100"
+        required
+        style="width: 80px;"
+      />
+
+      <button type="button" class="primary" id="add-movie-btn">Добавить</button>
+    </form>
+
+    <!-- CTA‑блок -->
+    <section id="randomizer-block">
+      <button
+        class="random-btn cta-big"
+        id="random-btn"
+        aria-label="Подобрать случайный фильм"
+      >
         <span class="cta-icon">🎲</span> Что смотреть?
       </button>
       <div id="random-out"></div>
-    </div>
-    <!-- Список фильмов (динамически через JS) -->
+    </section>
+
+    <!-- Список фильмов -->
     <ul class="movie-list" id="movie-list"></ul>
-    <!-- Статистика (на вкладке "Статистика") -->
-    <div id="stats-block" style="margin-top:24px;"></div>
-  </div>
+
+    <!-- Статистика -->
+    <section id="stats-block" style="margin-top: 24px;"></section>
+  </main>
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js" defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js" defer></script>
 
-  <!-- Модули приложения -->
-  <script src="firebase.js"></script>
-  <script src="ui.js"></script>
-  <script src="logic.js"></script>
-  <script src="stats.js"></script>
-  <script src="main.js"></script>
+  <!-- Скрипты приложения (ES‑modules) -->
+  <script src="firebase.js" type="module" defer></script>
+  <script src="ui.js" type="module" defer></script>
+  <script src="logic.js" type="module" defer></script>
+  <script src="stats.js" type="module" defer></script>
+  <script src="main.js" type="module" defer></script>
 </body>
 </html>
 
