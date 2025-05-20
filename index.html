@@ -1,11 +1,32 @@
-<!doctype html><html lang="ru"><head>
-<meta charset="utf-8">
-<title>Свят & Алёна MovieClub v2.3</title>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<link rel="stylesheet" href="style.css">
-<style>body{padding-top:env(safe-area-inset-top)} #random-out{max-width:85vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}</style>
-</head><body>
-<!-- choose-user modal -->
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Свят & Алёна MovieClub v2.3</title>
+
+  <!-- адаптив + safe-area -->
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
+  <!-- главный CSS -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- мелкие глобальные фиксы (можно перенести в style.css) -->
+  <style>
+    body{padding-top:env(safe-area-inset-top)}
+    /* плашка рандомайзера не выходит за экран */
+    #random-out{
+      max-width:85vw;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ──────────────────────────────────────────────────────────
+     1.  МОДАЛКА выбора пользователя
+     ────────────────────────────────────────────────────────── -->
 <div id="user-modal" style="display:none">
   <div class="modal-content">
     <div class="modal-title">Кто вы?</div>
@@ -14,54 +35,79 @@
   </div>
 </div>
 
+<!-- ──────────────────────────────────────────────────────────
+     2.  АВАТАР-переключатель
+     ────────────────────────────────────────────────────────── -->
 <div class="user-switch">
-  <button id="btn-svyat"  class="avatar-btn"><span class="avatar-circle">С</span><span class="avatar-name">Свят</span></button>
-  <button id="btn-alena" class="avatar-btn"><span class="avatar-circle">А</span><span class="avatar-name">Алёна</span></button>
+  <button id="btn-svyat" class="avatar-btn">
+    <span class="avatar-circle">С</span><span class="avatar-name">Свят</span>
+  </button>
+  <button id="btn-alena" class="avatar-btn">
+    <span class="avatar-circle">А</span><span class="avatar-name">Алёна</span>
+  </button>
 </div>
 
+<!-- ──────────────────────────────────────────────────────────
+     3.  ТАБЫ
+     ────────────────────────────────────────────────────────── -->
 <nav class="nav-tabs">
   <button class="tab active" data-tab="planned">Запланировано</button>
   <button class="tab"        data-tab="watched">Просмотрено</button>
   <button class="tab"        data-tab="stats">Статистика</button>
 </nav>
 
+<!-- ──────────────────────────────────────────────────────────
+     4.  ФИЛЬТРЫ + ПОИСК
+     ────────────────────────────────────────────────────────── -->
 <section class="filters">
   <button class="filter-btn active" data-filter="all"><span class="filter-icon">🌈</span>Все</button>
-  <button class="filter-btn" data-filter="8+"><span class="filter-icon">★</span>8+</button>
-  <button class="filter-btn" data-filter="withComment"><span class="filter-icon">💬</span>С комментарием</button>
-  <button class="filter-btn" data-filter="confirmedOnly"><span class="filter-icon">✔️</span>Подтверждённые</button>
+  <button class="filter-btn"        data-filter="8+"><span class="filter-icon">★</span>8+</button>
+  <button class="filter-btn"        data-filter="withComment"><span class="filter-icon">💬</span>С комментарием</button>
+  <button class="filter-btn"        data-filter="confirmedOnly"><span class="filter-icon">✔️</span>Подтверждённые</button>
 </section>
 
 <input id="movie-search" placeholder="Поиск по названию…">
+
 <div class="version" id="versionLabel">v2.3</div>
 
+<!-- ──────────────────────────────────────────────────────────
+     5.  ОСНОВНОЙ КОНТЕЙНЕР
+     ────────────────────────────────────────────────────────── -->
 <main class="container" id="container">
+
   <h1 class="text-center">Свят & Алёна MovieClub</h1>
 
+  <!-- форма добавления -->
   <div class="add-movie">
     <input id="new-movie-title" placeholder="Название фильма…">
     <input id="new-movie-year"  type="number" min="1900" max="2100" placeholder="Год">
     <button id="add-btn" class="primary" onclick="addMovie()">Добавить</button>
   </div>
 
+  <!-- CTA-рандомайзер -->
   <section id="randomizer-block">
-    <button id="randomBtn" class="random-btn"><span class="cta-icon">🎲</span>Что смотреть?</button>
+    <button id="randomBtn" class="random-btn">
+      <span class="cta-icon">🎲</span>Что смотреть?
+    </button>
     <div id="random-out"></div>
   </section>
 
+  <!-- список фильмов -->
   <ul id="movie-list" class="movie-list"></ul>
+
+  <!-- статистика -->
   <section id="stats-block" style="margin-top:24px"></section>
 </main>
 
-<!-- Firebase SDK (compat) -->
-<script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js" defer></script>
-<script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js" defer></script>
+<!-- ──────────────────────────────────────────────────────────
+     6.  СКРИПТЫ (ES-modules)
+     ────────────────────────────────────────────────────────── -->
+<script type="module" src="firebase.js"></script>
+<script type="module" src="stats.js"></script>
+<script type="module" src="ui.js"></script>
+<script type="module" src="logic.js"></script>
+<script type="module" src="main.js"></script>
 
-<!-- modules -->
-<script type="module" src="firebase.js" defer></script>
-<script type="module" src="stats.js"   defer></script>
-<script type="module" src="ui.js"      defer></script>
-<script type="module" src="logic.js"   defer></script>
-<script type="module" src="main.js"    defer></script>
-</body></html>
+</body>
+</html>
 
