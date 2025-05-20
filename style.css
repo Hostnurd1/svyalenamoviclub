@@ -283,3 +283,12 @@ a{text-decoration:none;color:inherit}
 }
 .modal-btn:active{transform:scale(.96);background:var(--color-primary-dark)}
 @media(prefers-color-scheme:dark){.modal-content{background:var(--color-bg-soft)}}
+/* toast — ограничиваем размеры и позицию */
+.toast{
+  max-width:90vw;
+  left:50%;
+  transform:translateX(-50%);
+}
+
+/* placeholder random-out скрыт по умолчанию */
+#random-out.hidden{display:none}
