@@ -1,78 +1,69 @@
-// ===== main.js (MovieClub v2.3) =====
-// ES‑module: подключаем в index.html как <script src="main.js" type="module" defer></script>
-// Экспортируем функцию addMovie, но одновременно кладём её в window,
-// чтобы старый код (logic.js, html‑onclick) продолжал работать.
+/* ===== main.js v2.3 =====
+   Только «клей» интерфейса ─ всё бизнес-правила остаются в logic.js
+*/
 
-import firebase from 'firebase/compat/app';
-import { dbAddMovie } from './firebase.js';
-import { loadAndRenderMovies, showToast, showError } from './ui.js';
+// --- 1. Версия в углу ------------------------------------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  const vLabel = document.querySelector('.version');
+  if (vLabel) vLabel.textContent = 'v2.3';
+});
 
-// ---------------------------------------------------------------------------
-// state guard – защита от двойного клика
-// ---------------------------------------------------------------------------
-let addLock = false;
-
-export function addMovie() {
-  if (addLock) return;           // ещё идёт прошлый запрос
-  addLock = true;
-
-  const addBtn  = document.getElementById('add-movie-btn');
-  const titleEl = document.getElementById('new-movie-title');
-  const yearEl  = document.getElementById('new-movie-year');
-
-  const title = titleEl.value.trim();
-  const year  = yearEl.value.trim();
-
-  // валидация ---------------------------------------------------------------
-  if (!title || !window.currentUser) {
-    showError('Укажи название и выбери пользователя!');
-    unlock();
-    return;
-  }
-
-  // собираем поля -----------------------------------------------------------
-  const movieObj = {
-    title,
-    year: year ? Number(year) : null,
-
-    status: 'Запланирован',
-    date: firebase.firestore.FieldValue.serverTimestamp(), // серверное время
-    addedBy: window.currentUser,
-
-    scoreSvyat: null,
-    scoreAlena: null,
-    commentSvyat: '',
-    commentAlena: '',
-    emojiSvyat: '',
-    emojiAlena: '',
-    confirmedSvyat: false,
-    confirmedAlena: false
+// --- 2. Утилита: запускаем действие со скелетоном --------------------------
+function withSkeleton(fn) {
+  return (...args) => {
+    renderSkeleton();                  // shimmer-placeholder из ui.js
+    setTimeout(() => fn(...args), 120); // мини-задержка = «сетевой» лаг
   };
-
-  // записываем в Firestore ---------------------------------------------------
-  dbAddMovie(movieObj)
-    .then(() => {
-      titleEl.value = '';
-      yearEl.value  = '';
-      showToast('Фильм добавлен!');
-      loadAndRenderMovies();
-    })
-    .catch((err) => {
-      console.error(err);
-      showError('Ошибка при добавлении!');
-    })
-    .finally(unlock);
 }
 
-function unlock() {
-  addLock = false;
-  const addBtn = document.getElementById('add-movie-btn');
-  if (addBtn) addBtn.disabled = false;
+// --- 3. Навешиваем обработчики после разбора DOM ---------------------------
+document.addEventListener('DOMContentLoaded', () => {
+  /* Фильтры-кнопки */
+  document.querySelectorAll('.filter-btn').forEach(btn =>
+    btn.addEventListener('click',
+      withSkeleton(() => setFilter(btn.dataset.filter)))
+  );
+
+  /* Табы */
+  document.querySelectorAll('.tab').forEach(btn =>
+    btn.addEventListener('click',
+      withSkeleton(() => switchTab(btn.dataset.tab)))
+  );
+
+  /* Поиск */
+  document.getElementById('movie-search')
+          .addEventListener('input',
+            withSkeleton(e => setSearch(e.target.value)));
+
+  /* Рандомайзер */
+  document.querySelector('.random-btn')
+          .addEventListener('click', randomMovie);
+});
+
+// --- 4. Случайный фильм ----------------------------------------------------
+async function randomMovie() {
+  const out = document.getElementById('random-out');
+  out.textContent = '🎲 ищем…';
+
+  try {
+    let movies = await dbGetMovies();
+    movies = movies.filter(m => m.status === 'Запланирован');
+
+    if (!movies.length) {
+      out.textContent = 'Нет фильмов в планах!';
+      return;
+    }
+
+    const rnd = movies[Math.floor(Math.random() * movies.length)];
+    out.innerHTML =
+      `🎬 Ваш выбор: <b>${rnd.title}${rnd.year ? ` (${rnd.year})` : ''}</b>`;
+  } catch (err) {
+    console.error(err);
+    out.textContent = 'Ошибка сети 😢';
+  }
 }
 
-// -------------------------------------------------------------
-// раскрываем глобально (для legacy‑кода) ----------------------
-// -------------------------------------------------------------
-window.addMovie = addMovie;
+/* Показ/скрытие модалки и первая загрузка
+   уже обрабатываются в logic.js (window.load listener). */
 
 
