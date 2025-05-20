@@ -1,12 +1,6 @@
 /* =================================================
-   MovieClub — logic.js v2.3
-   =================================================
-   ▸ хранит глобальное состояние (tab / filter / search)
-   ▸ обёртки над Firestore-CRUD
-   ▸ главная функция loadAndRenderMovies()
-   ▸ выбор пользователя, переключение фильтров и вкладок
-   ------------------------------------------------- */
-
+   MovieClub — logic.js v2.4
+   ================================================= */
 import {
   dbAddMovie,
   dbDeleteMovie,
@@ -23,54 +17,61 @@ import {
 
 import { renderStats } from "./stats.js";
 
-/* ---------- 1. GLOBAL STATE --------------------------------------------- */
-window.currentTab    = "planned";                           // planned | watched | stats
+/* ---------- 1. GLOBAL STATE ------------------------------------------- */
+window.currentTab    = "planned";
 window.currentUser   = localStorage.getItem("mc_user") || "";
-window.currentFilter = "all";                               // all | 8+ | withComment | confirmedOnly
+window.currentFilter = "all";
 window.currentSearch = "";
 
-/* ---------- 2. HELPERS --------------------------------------------------- */
-const fieldByUser = (base, user) => (user === "Свят" ? `${base}Svyat` : `${base}Alena`);
+const chip = document.getElementById("current-user-chip");
 
-/* ---------- 3. CRUD-WRAPPERS (UI → Firestore) --------------------------- */
+/* ---------- 2. HELPERS ------------------------------------------------- */
+const fieldByUser = (base, user) =>
+  user === "Свят" ? `${base}Svyat` : `${base}Alena`;
+
+/* ---------- 3. CRUD wrappers ------------------------------------------ */
 window.addMovie = async () => {
-  const title = document.getElementById("new-movie-title").value.trim();
-  const year  = document.getElementById("new-movie-year").value.trim();
+  if (window.__addLock) return;               // анти-спам
+  window.__addLock = true;
 
-  if (!title || !window.currentUser) {
+  const title = newMovieTitle.value.trim();
+  const year  = newMovieYear.value.trim();
+  if (!title || !currentUser) {
     showToast("Укажи название и выбери пользователя!", "error");
+    window.__addLock = false;
     return;
   }
 
-  const movieObj = {
+  const obj = {
     title,
-    year: year ? Number(year) : null,
+    year: year ? +year : null,
     status: "Запланирован",
-    addedBy: window.currentUser,
-    scoreSvyat: null,   scoreAlena: null,
-    commentSvyat: "",   commentAlena: "",
-    emojiSvyat: "",     emojiAlena: "",
+    addedBy: currentUser,
+    scoreSvyat: null, scoreAlena: null,
+    commentSvyat: "", commentAlena: "",
+    emojiSvyat: "",   emojiAlena: "",
     confirmedSvyat: false, confirmedAlena: false
   };
 
   try {
-    await dbAddMovie(movieObj);
-    document.getElementById("new-movie-title").value = "";
-    document.getElementById("new-movie-year").value  = "";
+    await dbAddMovie(obj);
+    newMovieTitle.value = ""; newMovieYear.value = "";
     showToast("Фильм добавлен!");
     loadAndRenderMovies();
   } catch (e) {
     console.error(e);
     showToast("Ошибка сохранения 😢", "error");
+  } finally {
+    window.__addLock = false;
   }
 };
 
-window.deleteMovieLogic   = async id        => { await dbDeleteMovie(id);        loadAndRenderMovies(); };
-window.confirmReviewLogic = async (id, u)   => { await dbUpdateMovie(id, { [fieldByUser("confirmed", u)]: true }); loadAndRenderMovies(); };
-window.setCommentLogic    = async (id, u,v) => { await dbUpdateMovie(id, { [fieldByUser("comment",   u)]: v    }); loadAndRenderMovies(); };
-window.setScoreStar       = async (id, u,v) => { await dbUpdateMovie(id, { [fieldByUser("score",     u)]: v    }); loadAndRenderMovies(); navigator.vibrate?.(20); };
+window.deleteMovieLogic   = async id        => { await dbDeleteMovie(id); loadAndRenderMovies(); };
+window.confirmReviewLogic = async (id,u)    => { await dbUpdateMovie(id,{[fieldByUser("confirmed",u)]:true}); loadAndRenderMovies(); };
+window.setCommentLogic    = async (id,u,v)  => { await dbUpdateMovie(id,{[fieldByUser("comment",u)]:v});     loadAndRenderMovies(); };
+window.setScoreStar       = async (id,u,v)  => { await dbUpdateMovie(id,{[fieldByUser("score",u)]:v});       loadAndRenderMovies(); navigator.vibrate?.(15); };
 
-/* ---------- 4. MAIN LOADER ---------------------------------------------- */
+/* ---------- 4. MAIN LOADER -------------------------------------------- */
 window.loadAndRenderMovies = async () => {
   renderSkeleton();
 
@@ -80,8 +81,7 @@ window.loadAndRenderMovies = async () => {
   } catch (e) {
     console.error(e);
     showToast("Ошибка загрузки 😢", "error");
-    document.getElementById("movie-list").innerHTML =
-      "<li class='movie' style='text-align:center;color:#f66;padding:30px 0'>Не удалось получить данные</li>";
+    movieList.innerHTML = "<li class='movie' style='text-align:center;color:#f66;padding:30px 0'>Не удалось получить данные</li>";
     return;
   }
 
@@ -96,15 +96,15 @@ window.loadAndRenderMovies = async () => {
   }
 
   /* фильтры */
-  if (currentFilter === "8+")              movies = movies.filter(m => (m.scoreSvyat >= 8) || (m.scoreAlena >= 8));
-  if (currentFilter === "withComment")     movies = movies.filter(m => (m.commentSvyat?.length) || (m.commentAlena?.length));
-  if (currentFilter === "confirmedOnly")   movies = movies.filter(m => m.confirmedSvyat && m.confirmedAlena);
+  if (currentFilter === "8+")            movies = movies.filter(m => (m.scoreSvyat >= 8) || (m.scoreAlena >= 8));
+  if (currentFilter === "withComment")   movies = movies.filter(m => (m.commentSvyat?.length) || (m.commentAlena?.length));
+  if (currentFilter === "confirmedOnly") movies = movies.filter(m => m.confirmedSvyat && m.confirmedAlena);
 
   renderMovieList(movies, currentUser);
   if (currentTab === "stats") renderStats(movies);
 };
 
-/* ---------- 5. UI-SWITCHES ---------------------------------------------- */
+/* ---------- 5. UI SWITCHES -------------------------------------------- */
 window.switchTab = tab => {
   if (currentTab === tab) return;
   currentTab = tab;
@@ -132,24 +132,34 @@ window.chooseUser = (user, fromModal = false) => {
     btn.classList.toggle("active",
       btn.querySelector(".avatar-name").textContent === user));
 
-  if (fromModal) {
-    document.getElementById("user-modal").style.display = "none";
-    const c = document.querySelector(".container");
-    c.style.filter = ""; c.style.pointerEvents = "auto";
-  }
+  // чип-метка
+  chip.textContent = `Вы: ${user}`;
+  chip.classList.remove("hidden");
 
+  if (fromModal) {
+    userModal.style.display = "none";
+    container.style.filter = "";
+    container.style.pointerEvents = "auto";
+  }
   loadAndRenderMovies();
 };
 
-/* ---------- 6. ON-BOOT --------------------------------------------------- */
+/* ---------- 6. ON-BOOT ------------------------------------------------- */
 window.addEventListener("load", () => {
   if (!currentUser) {
-    document.getElementById("user-modal").style.display = "flex";
-    const c = document.querySelector(".container");
-    c.style.filter = "blur(4px)";
-    c.style.pointerEvents = "none";
+    userModal.style.display = "flex";
+    container.style.filter = "blur(4px)";
+    container.style.pointerEvents = "none";
   } else {
+    // подсветим аватар и чип
+    document.querySelectorAll(".avatar-btn").forEach(btn =>
+      btn.classList.toggle("active",
+        btn.querySelector(".avatar-name").textContent === currentUser));
+    chip.textContent = `Вы: ${currentUser}`;
+    chip.classList.remove("hidden");
+
     loadAndRenderMovies();
   }
 });
+
 
