@@ -1,82 +1,142 @@
-// ==== MovieClub v2.0: main.js ====
+// ====== main.js v2.2, Этап 1: Инициализация ======
 
-// Глобальные переменные (текущий пользователь, вкладка и фильтр)
-window.currentTab = 'planned';
-window.currentUser = localStorage.getItem('mc_user') || '';
-window.currentFilter = 'all';
-window.currentSearch = '';
+// Рендер версии
+document.addEventListener('DOMContentLoaded', () => {
+  const v = document.querySelector('.version');
+  if (v) v.textContent = 'v2.2';
+});
 
-// Привязка UI-функций к logic
-window.addMovie = function () {
-  const title = document.getElementById('new-movie-title').value.trim();
-  const year = document.getElementById('new-movie-year').value.trim();
-  if (!title || !window.currentUser) return;
-  addMovieLogic(title, year, window.currentUser);
-};
-
-window.switchTab = function(tab) {
-  window.currentTab = tab;
-  renderTabs(tab);
-  loadAndRenderMovies();
-};
-
-window.setFilter = function(filter) {
-  window.currentFilter = filter;
-  renderFilters(filter);
-  loadAndRenderMovies();
-};
-
-window.setSearch = function(val) {
-  window.currentSearch = val.trim().toLowerCase();
-  loadAndRenderMovies();
-};
-
-// Входной рендер приложения
+// Точка входа: запуск приложения при загрузке страницы
 window.onload = function () {
-  renderTabs(window.currentTab);
-  renderFilters(window.currentFilter);
-  renderVersion('v2.0');
-  loadAndRenderMovies();
-};
-
-// Подключаем смену пользователя через UI
-window.chooseUser = function(user, fromModal) {
-  window.currentUser = user;
-  localStorage.setItem('mc_user', user);
-  highlightUserBtn();
-  if (fromModal) {
-    document.getElementById('user-modal').style.display = 'none';
-    document.querySelector('.container').style.filter = '';
-    document.querySelector('.container').style.pointerEvents = '';
+  // Если пользователь не выбран — открываем модалку
+  if (!window.currentUser) {
+    window.showModal();
+  } else {
+    // Подсветить выбранного пользователя
+    document.querySelectorAll('.avatar-btn').forEach(btn => btn.classList.remove('active'));
+    if (window.currentUser === 'Свят') document.getElementById('btn-svyat').classList.add('active');
+    if (window.currentUser === 'Алёна') document.getElementById('btn-alena').classList.add('active');
+    // Загружаем и рендерим фильмы
+    window.loadAndRenderMovies();
   }
-  loadAndRenderMovies();
 };
+// ====== main.js v2.2, Этап 2: обработчики интерфейса ======
 
-window.showModal = function() {
-  document.getElementById('user-modal').style.display = 'flex';
-  document.querySelector('.container').style.filter = 'blur(4px)';
-  document.querySelector('.container').style.pointerEvents = 'none';
-};
+// Фильтры (чек-кнопки)
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    window.setFilter(btn.dataset.filter);
+  });
+});
 
-document.getElementById('btn-svyat').addEventListener('click', () => window.chooseUser('Свят'));
-document.getElementById('btn-alena').addEventListener('click', () => window.chooseUser('Алёна'));
-document.getElementById('btn-switch').addEventListener('click', window.showModal);
+// Переключение вкладок (табы)
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', function() {
+    window.switchTab(btn.dataset.tab);
+  });
+});
 
-// Автоматический показ модалки при отсутствии выбранного пользователя
-if (!window.currentUser) {
-  window.showModal();
+// Поиск (input)
+const searchInput = document.getElementById('movie-search');
+if (searchInput) {
+  searchInput.addEventListener('input', function(e) {
+    window.setSearch(e.target.value);
+  });
 }
 
-// Быстрое добавление фильма по Enter
+// Кнопка рандомайзера
+window.randomMovie = async function () {
+  let movies = await dbGetMovies();
+  movies = movies.filter(m => m.status === "Запланирован");
+  if (!movies.length) {
+    document.getElementById('random-out').innerText = 'Нет фильмов в планах!';
+    return;
+  }
+  const rnd = movies[Math.floor(Math.random() * movies.length)];
+  document.getElementById('random-out').innerHTML =
+    `🎬 Ваш выбор: <b>${rnd.title}${rnd.year ? ' (' + rnd.year + ')' : ''}</b>`;
+};
+
+// Смена пользователя (вызывает showModal)
+document.getElementById('btn-switch')?.addEventListener('click', window.showModal);
+
+// Версия для быстрой отладки: по Enter можно добавить фильм
 document.getElementById('new-movie-title').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') window.addMovie();
 });
 document.getElementById('new-movie-year').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') window.addMovie();
 });
+// ====== main.js v2.2, Этап 3: glue-UX, skeleton, toast ======
 
-// Связь поиска с logic
-document.getElementById('movie-search').addEventListener('input', function(e) {
-  window.setSearch(e.target.value);
-});
+// Показывать скелетоны при каждом переходе (фильтры, вкладки, поиск)
+function startLoading() {
+  renderSkeleton(4);
+}
+
+// Показ тоста об ошибке (например, нет сети, не удалось сохранить)
+window.showError = function(message) {
+  showToast(message, 'error');
+};
+
+// При любом изменении вкладки/фильтра — сначала скелетон, потом контент
+const reloadWithSkeleton = () => {
+  startLoading();
+  setTimeout(window.loadAndRenderMovies, 220); // имитация ожидания/сети
+};
+window.setFilter = function(filter) {
+  window.currentFilter = filter;
+  renderFilters(filter);
+  reloadWithSkeleton();
+};
+window.switchTab = function(tab) {
+  window.currentTab = tab;
+  document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+  reloadWithSkeleton();
+};
+window.setSearch = function(val) {
+  window.currentSearch = val.trim().toLowerCase();
+  reloadWithSkeleton();
+};
+
+// Защита от двойного клика (спам) на добавление фильма
+let addLock = false;
+window.addMovie = function () {
+  if (addLock) return;
+  addLock = true;
+  const title = document.getElementById('new-movie-title').value.trim();
+  const year = document.getElementById('new-movie-year').value.trim();
+  if (!title || !window.currentUser) {
+    addLock = false;
+    showError("Укажи название и выбери пользователя!");
+    return;
+  }
+  const movieObj = {
+    title: title,
+    year: year ? Number(year) : null,
+    status: 'Запланирован',
+    date: new Date().toISOString(),
+    addedBy: window.currentUser,
+    scoreSvyat: null,
+    scoreAlena: null,
+    commentSvyat: '',
+    commentAlena: '',
+    emojiSvyat: '',
+    emojiAlena: '',
+    confirmedSvyat: false,
+    confirmedAlena: false
+  };
+  dbAddMovie(movieObj).then(() => {
+    addLock = false;
+    window.loadAndRenderMovies();
+    document.getElementById('new-movie-title').value = '';
+    document.getElementById('new-movie-year').value = '';
+    showToast('Фильм добавлен!');
+  }).catch(() => {
+    addLock = false;
+    showError('Ошибка при добавлении!');
+  });
+};
+
 
