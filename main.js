@@ -1,69 +1,81 @@
-/* ===== main.js v2.3 =====
-   Только «клей» интерфейса ─ всё бизнес-правила остаются в logic.js
-*/
+/* =================================================
+   MovieClub — main.js v2.3
+   -------------------------------------------------
+   «Клей» интерфейса:
+     • вешает обработчики на кнопки / поля
+     • запускает skeleton-обёрнутые экшены
+     • реализует Рандом-фильм
+   Бизнес-логика живёт в logic.js
+   ================================================= */
 
-// --- 1. Версия в углу ------------------------------------------------------
-document.addEventListener('DOMContentLoaded', () => {
-  const vLabel = document.querySelector('.version');
-  if (vLabel) vLabel.textContent = 'v2.3';
-});
+import { dbGetMovies }   from "./firebase.js";
+import { showToast }     from "./ui.js";
+import { renderSkeleton } from "./ui.js";
 
-// --- 2. Утилита: запускаем действие со скелетоном --------------------------
-function withSkeleton(fn) {
-  return (...args) => {
-    renderSkeleton();                  // shimmer-placeholder из ui.js
-    setTimeout(() => fn(...args), 120); // мини-задержка = «сетевой» лаг
-  };
-}
+/* ---------- 1.  helper: skeleton-обёртка ------------------------------- */
+const withSkeleton = fn => (...args) => {
+  renderSkeleton();
+  setTimeout(() => fn(...args), 120);   // имитация краткой задержки сети
+};
 
-// --- 3. Навешиваем обработчики после разбора DOM ---------------------------
-document.addEventListener('DOMContentLoaded', () => {
-  /* Фильтры-кнопки */
-  document.querySelectorAll('.filter-btn').forEach(btn =>
-    btn.addEventListener('click',
-      withSkeleton(() => setFilter(btn.dataset.filter)))
+/* ---------- 2.  DOMContentLoaded — вешаем события ---------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+  /* версия внизу */
+  document.getElementById("versionLabel").textContent = "v2.3";
+
+  /* фильтры */
+  document.querySelectorAll(".filter-btn").forEach(btn =>
+    btn.addEventListener("click",
+      withSkeleton(() => window.setFilter(btn.dataset.filter)))
   );
 
-  /* Табы */
-  document.querySelectorAll('.tab').forEach(btn =>
-    btn.addEventListener('click',
-      withSkeleton(() => switchTab(btn.dataset.tab)))
+  /* вкладки (табы) */
+  document.querySelectorAll(".tab").forEach(btn =>
+    btn.addEventListener("click",
+      withSkeleton(() => window.switchTab(btn.dataset.tab)))
   );
 
-  /* Поиск */
-  document.getElementById('movie-search')
-          .addEventListener('input',
-            withSkeleton(e => setSearch(e.target.value)));
+  /* поиск */
+  const movieSearch = document.getElementById("movie-search");
+  movieSearch.addEventListener("input",
+    withSkeleton(e => window.setSearch(e.target.value)));
 
-  /* Рандомайзер */
-  document.querySelector('.random-btn')
-          .addEventListener('click', randomMovie);
+  /* рандомайзер */
+  document.getElementById("randomBtn").addEventListener("click", randomMovie);
+
+  /* enter-ввод в форме добавления */
+  ["new-movie-title", "new-movie-year"].forEach(id =>
+    document.getElementById(id).addEventListener("keydown", e => {
+      if (e.key === "Enter") window.addMovie();
+    })
+  );
 });
 
-// --- 4. Случайный фильм ----------------------------------------------------
+/* ---------- 3.  Рандом-фильм ------------------------------------------- */
 async function randomMovie() {
-  const out = document.getElementById('random-out');
-  out.textContent = '🎲 ищем…';
+  const out = document.getElementById("random-out");
+  out.textContent = "🎲 ищем…";
 
+  let movies = [];
   try {
-    let movies = await dbGetMovies();
-    movies = movies.filter(m => m.status === 'Запланирован');
-
-    if (!movies.length) {
-      out.textContent = 'Нет фильмов в планах!';
-      return;
-    }
-
-    const rnd = movies[Math.floor(Math.random() * movies.length)];
-    out.innerHTML =
-      `🎬 Ваш выбор: <b>${rnd.title}${rnd.year ? ` (${rnd.year})` : ''}</b>`;
+    movies = await dbGetMovies();
   } catch (err) {
     console.error(err);
-    out.textContent = 'Ошибка сети 😢';
+    out.textContent = "Ошибка сети 😢";
+    return;
   }
+
+  movies = movies.filter(m => m.status === "Запланирован");
+  if (!movies.length) {
+    out.textContent = "Нет фильмов в планах!";
+    return;
+  }
+
+  const rnd = movies[Math.floor(Math.random() * movies.length)];
+  out.innerHTML =
+    `🎬 Ваш выбор: <b>${rnd.title}${rnd.year ? ` (${rnd.year})` : ""}</b>`;
+
+  // лёгкая вибрация как отклик
+  navigator.vibrate?.(15);
 }
-
-/* Показ/скрытие модалки и первая загрузка
-   уже обрабатываются в logic.js (window.load listener). */
-
 
