@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Свят & Алёна MovieClub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f7f8fa; margin: 0; color: #232323; }
+    .container { max-width: 480px; margin: 40px auto; background: #fff; border-radius: 24px; box-shadow: 0 6px 32px #0001; padding: 28px 22px; }
+    .add-movie { display: flex; gap: 6px; margin: 18px 0 20px 0; }
+    input[type="text"] { padding: 7px; border-radius: 10px; border: 1px solid #dbeafe; width: 62%; }
+    button { padding: 8px 16px; border-radius: 10px; border: none; background: #5e81f4; color: #fff; font-weight: 500; cursor: pointer; }
+    .movie-list { list-style: none; padding: 0; }
+    .movie { background: #f2f7fe; margin-bottom: 16px; border-radius: 14px; padding: 13px 15px; }
+    .movie-title { font-size: 19px; font-weight: 600; margin-bottom: 5px; }
+    .mini { font-size: 13px; color: #555; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Свят & Алёна MovieClub</h1>
+  <div class="add-movie">
+    <input type="text" id="new-movie-title" placeholder="Добавить фильм...">
+    <button onclick="addMovie()">Добавить</button>
+  </div>
+  <ul class="movie-list" id="movie-list"></ul>
+</div>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAxLMSDQSPon7NTd9loVRMLNCseBFSOTDc",
+    authDomain: "movieclub-aba80.firebaseapp.com",
+    projectId: "movieclub-aba80",
+    storageBucket: "movieclub-aba80.appspot.com",
+    messagingSenderId: "747897349535",
+    appId: "1:747897349535:web:bd29be3880dbcffac749aa",
+    measurementId: "G-LQ40KH85NE"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  async function addMovie() {
+    const title = document.getElementById('new-movie-title').value.trim();
+    if (!title) return;
+    await db.collection('movies').add({
+      title: title,
+      status: 'Запланирован',
+      date: new Date().toISOString()
+    });
+    document.getElementById('new-movie-title').value = '';
+    loadMovies();
+  }
+
+  async function loadMovies() {
+    const res = await db.collection('movies').orderBy('date', 'desc').get();
+    let html = '';
+    res.forEach(doc => {
+      const m = doc.data();
+      html += `<li class="movie">
+        <div class="movie-title">${m.title}</div>
+        <div class="mini">${m.status || ''}</div>
+      </li>`;
+    });
+    document.getElementById('movie-list').innerHTML = html;
+  }
+
+  loadMovies();
+</script>
+</body>
+</html>
