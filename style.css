@@ -1,0 +1,179 @@
+body {
+  font-family: 'Segoe UI', 'Arial', sans-serif;
+  background: #f7f8fa;
+  margin: 0;
+  color: #232323;
+}
+.container {
+  max-width: 480px;
+  margin: 40px auto 0 auto;
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 6px 32px #0001;
+  padding: 28px 22px 38px 22px;
+  position: relative;
+  min-height: 400px;
+}
+.add-movie {
+  display: flex;
+  gap: 6px;
+  margin: 18px 0 20px 0;
+}
+input[type="text"] {
+  padding: 9px;
+  border-radius: 10px;
+  border: 1.5px solid #dbeafe;
+  width: 62%;
+  font-size: 17px;
+  transition: border .2s;
+}
+input[type="text"]:focus {
+  outline: none;
+  border: 1.5px solid #5e81f4;
+  background: #eef5ff;
+}
+button {
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  background: #5e81f4;
+  color: #fff;
+  font-weight: 500;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background .18s, transform .1s;
+}
+button:hover, .modal-btn:hover, .random-btn:hover {
+  background: #3e5cb5;
+  transform: translateY(-2px) scale(1.04);
+}
+.movie-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.movie {
+  background: #f2f7fe;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  padding: 14px 14px 18px 14px;
+  position: relative;
+  box-shadow: 0 1px 8px #0001;
+}
+.movie-title {
+  font-size: 19px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.mini {
+  font-size: 13px;
+  color: #555;
+  margin-bottom: 4px;
+}
+input[type="number"], .movie input[type="text"] {
+  border: 1px solid #bdd1fa;
+  border-radius: 7px;
+  padding: 5px;
+  font-size: 16px;
+  margin: 2px 4px 2px 0;
+  width: 36px;
+}
+input[disabled], .movie input[disabled] {
+  background: #e7e7e7 !important;
+  color: #aaa !important;
+  cursor: not-allowed;
+}
+.movie input[type="text"][placeholder="Комментарий"] {
+  width: 100px;
+  margin-bottom: 3px;
+}
+.movie input[type="text"][maxlength="2"] {
+  width: 34px;
+  text-align: center;
+}
+b {
+  font-weight: 700;
+}
+.random-btn {
+  width: 100%;
+  margin: 12px 0 7px 0;
+  font-size: 18px;
+  background: #fb3640;
+}
+.random-btn:hover {
+  background: #a8252b;
+}
+#random-out {
+  margin-top: 7px;
+  font-size: 17px;
+  font-weight: 500;
+  color: #fb3640;
+  text-align: center;
+}
+.user-switch {
+  text-align: center;
+  margin: 28px auto 0 auto;
+}
+.user-switch button {
+  background: #e9effd;
+  color: #3e5cb5;
+  font-size: 17px;
+  border-radius: 10px;
+  margin-right: 12px;
+  margin-left: 0;
+  transition: background .2s, color .2s;
+}
+.user-switch button:last-child {
+  margin-right: 0;
+}
+.user-switch button.active {
+  background: #5e81f4;
+  color: #fff;
+}
+#user-modal {
+  position: fixed;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: #fffdfedc;
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.modal-content {
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 6px 32px #0002;
+  padding: 32px 28px;
+  text-align: center;
+  min-width: 220px;
+}
+.modal-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+.modal-btn {
+  margin: 8px 0 7px 0;
+  padding: 10px 40px;
+  border-radius: 12px;
+  font-size: 19px;
+  background: #5e81f4;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background .18s, transform .1s;
+}
+.modal-btn:hover {
+  background: #3e5cb5;
+  transform: scale(1.06);
+}
+
+@media (max-width:600px) {
+  .container { padding: 8px 2vw 32px 2vw; }
+  .add-movie input[type="text"] { width: 60%; font-size: 16px; }
+  .movie-title { font-size: 17px; }
+  button, .modal-btn, .random-btn { font-size: 15px; padding: 10px 10px; }
+  .modal-content { padding: 20px 6vw; }
+  .user-switch { margin-top: 12px; }
+}
