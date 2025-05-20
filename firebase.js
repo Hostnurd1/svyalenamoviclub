@@ -1,8 +1,13 @@
-// ===== firebase.js (MovieClub v2.3-fix) =====
+// ===== firebase.js (MovieClub v2.4 – modular) =====
 
-// 1. SDK init (compat-layer)
-import * as firebase from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js";
-import "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js";
+// SDK — модульная версия
+import { initializeApp, getApps } from
+  "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+import {
+  getFirestore, query, orderBy, collection, addDoc,
+  getDocs, doc, deleteDoc, updateDoc, serverTimestamp
+} from
+  "https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey:            "AIzaSyAxLMSDQSPon7NTd9loVRMLNCseBFSOTDc",
@@ -14,24 +19,27 @@ const firebaseConfig = {
   measurementId:     "G-LQ40KH85NE"
 };
 
-const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(firebaseConfig);
-const db  = app.firestore();
-const { FieldValue } = firebase.firestore;
+// реюзим, если уже инициализировано
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const db  = getFirestore(app);
 
-// 2. CRUD helpers — экспортируем явно
+/* ---------- CRUD helpers (экспортируем) ---------------- */
 export async function dbAddMovie(movieObj){
-  return db.collection("movies")
-           .add({ ...movieObj, date: FieldValue.serverTimestamp() });
-}
-export async function dbDeleteMovie(id){
-  return db.collection("movies").doc(id).delete();
-}
-export async function dbUpdateMovie(id, fields){
-  return db.collection("movies").doc(id).update(fields);
-}
-export async function dbGetMovies(){
-  const snap = await db.collection("movies").orderBy("date","desc").get();
-  return snap.docs.map(d => ({ id:d.id, ...d.data() }));
+  await addDoc(collection(db, "movies"), { ...movieObj, date: serverTimestamp() });
 }
 
+export async function dbDeleteMovie(id){
+  await deleteDoc(doc(db, "movies", id));
+}
+
+export async function dbUpdateMovie(id, fields){
+  await updateDoc(doc(db, "movies", id), fields);
+}
+
+export async function dbGetMovies(){
+  const snap = await getDocs(
+    query(collection(db, "movies"), orderBy("date", "desc"))
+  );
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
 
