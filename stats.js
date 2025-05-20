@@ -98,3 +98,6 @@ function renderStats(movies = []) {
 //
 // 3. (опц.) экспорт — если используешь ES-modules
 //    export { renderStats };
+// … весь код renderStats …
+
+export { renderStats };
