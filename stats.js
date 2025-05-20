@@ -1,6 +1,6 @@
-// ==== MovieClub v2.0: stats.js ====
+// ====== stats.js (MovieClub v2.2) ======
 
-// Подсчет топ-фильмов по оценке (за всё время или только за последние N)
+// Получить топ-N фильмов по средней оценке
 function getTopMovies(movies, limit = 5) {
   const rated = movies.filter(m => m.scoreSvyat && m.scoreAlena);
   rated.sort((a, b) => (
@@ -9,12 +9,12 @@ function getTopMovies(movies, limit = 5) {
   return rated.slice(0, limit);
 }
 
-// Сколько раз совпали оценки (и на каких фильмах)
+// Совпавшие оценки
 function getScoreMatches(movies) {
   return movies.filter(m => m.scoreSvyat && m.scoreAlena && m.scoreSvyat === m.scoreAlena);
 }
 
-// Тренд: в какие месяцы/года чаще всего смотрели фильмы
+// Тренды по месяцам
 function getWatchTrends(movies) {
   const byMonth = {};
   movies.forEach(m => {
@@ -26,33 +26,46 @@ function getWatchTrends(movies) {
   return byMonth;
 }
 
-// Визуализация топов и трендов (упрощенный вариант)
-function renderAdvancedStats(movies) {
+// Рендер статистики
+function renderStats(movies) {
   const stats = document.getElementById('stats-block');
   if (!stats) return;
-  // Топ фильмов
+  // Счётчики
+  const total = movies.length;
+  const planned = movies.filter(m => m.status === 'Запланирован').length;
+  const watched = movies.filter(m => m.status === 'Просмотрен').length;
+  const avgSvyat = avg(movies.map(m => m.scoreSvyat));
+  const avgAlena = avg(movies.map(m => m.scoreAlena));
+
+  // Топ
   const top = getTopMovies(movies, 5);
-  let html = `<h3>Топ-5 фильмов по оценке</h3><ol>`;
-  top.forEach(m => {
-    html += `<li>${m.title} (${m.year || ""}) — <b>${((m.scoreSvyat + m.scoreAlena)/2).toFixed(1)}</b></li>`;
-  });
-  html += `</ol>`;
-
-  // Совпавшие оценки
+  // Совпадения
   const matches = getScoreMatches(movies);
-  html += `<h3>Совпавшие оценки (${matches.length})</h3><ul>`;
-  matches.forEach(m => {
-    html += `<li>${m.title} — <b>${m.scoreSvyat}</b></li>`;
-  });
-  html += `</ul>`;
-
-  // Тренд по месяцам
+  // Тренды
   const trends = getWatchTrends(movies);
-  html += `<h3>Динамика просмотров по месяцам</h3><ul>`;
-  Object.entries(trends).forEach(([month, count]) => {
-    html += `<li>${month}: <b>${count}</b> фильмов</li>`;
-  });
-  html += `</ul>`;
 
+  let html = `<div class="stats-summary">
+    <b>Всего фильмов:</b> ${total}<br>
+    <b>Запланировано:</b> ${planned}<br>
+    <b>Просмотрено:</b> ${watched}<br>
+    <b>Средняя оценка Свята:</b> ${avgSvyat}<br>
+    <b>Средняя оценка Алёны:</b> ${avgAlena}<br>
+    <hr style="margin: 10px 0;">
+    <h3>Топ-5 фильмов по оценке</h3>
+    <ol>${top.map(m => `<li>${m.title} (${m.year || ""}) — <b>${((m.scoreSvyat + m.scoreAlena)/2).toFixed(1)}</b></li>`).join('')}</ol>
+    <h3>Совпадения оценок (${matches.length})</h3>
+    <ul>${matches.map(m => `<li>${m.title} — <b>${m.scoreSvyat}</b></li>`).join('')}</ul>
+    <h3>Тренд по месяцам</h3>
+    <ul>${Object.entries(trends).map(([month, count]) =>
+      `<li>${month}: <b>${count}</b> фильмов</li>`
+    ).join('')}</ul>
+  </div>`;
   stats.innerHTML = html;
+}
+
+// Вспомогательная функция для средней оценки
+function avg(arr) {
+  arr = arr.filter(x => typeof x === 'number');
+  if (!arr.length) return "-";
+  return (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2);
 }
