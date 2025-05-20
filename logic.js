@@ -136,3 +136,51 @@ function calcStats(movies) {
     mostCommon
   };
 }
+// ==== Смена статуса фильма ====
+async function toggleStatusLogic(id, currentStatus) {
+  const newStatus = currentStatus === 'Запланирован' ? 'Просмотрен' : 'Запланирован';
+  await dbUpdateMovie(id, { status: newStatus });
+  loadAndRenderMovies();
+}
+
+// ==== Привязка UI-функций к логике ====
+window.setScoreUI = setScoreLogic;
+window.setCommentUI = setCommentLogic;
+window.setEmojiUI = setEmojiLogic;
+window.confirmReviewUI = confirmReviewLogic;
+window.deleteMovieUI = deleteMovieLogic;
+
+// ==== Расчет статистики для вкладки “Статистика” ====
+function calcStats(movies) {
+  if (!movies.length) return {
+    total: 0, planned: 0, watched: 0, avgSvyat: "-", avgAlena: "-", mostCommon: "-"
+  };
+
+  let planned = 0, watched = 0, sumS = 0, cntS = 0, sumA = 0, cntA = 0;
+  let scoresMatch = {};
+  movies.forEach(m => {
+    if (m.status === "Запланирован") planned++;
+    if (m.status === "Просмотрен") watched++;
+    if (m.scoreSvyat) { sumS += m.scoreSvyat; cntS++; }
+    if (m.scoreAlena) { sumA += m.scoreAlena; cntA++; }
+    // для совпадений оценок
+    if (m.scoreSvyat && m.scoreAlena && m.scoreSvyat === m.scoreAlena) {
+      scoresMatch[m.scoreSvyat] = (scoresMatch[m.scoreSvyat] || 0) + 1;
+    }
+  });
+  let mostCommon = "-";
+  let maxMatch = 0;
+  for (let k in scoresMatch) {
+    if (scoresMatch[k] > maxMatch) {
+      maxMatch = scoresMatch[k];
+      mostCommon = k;
+    }
+  }
+  return {
+    total: movies.length,
+    planned, watched,
+    avgSvyat: cntS ? (sumS / cntS).toFixed(2) : "-",
+    avgAlena: cntA ? (sumA / cntA).toFixed(2) : "-",
+    mostCommon
+  };
+}
