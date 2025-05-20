@@ -11,7 +11,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ==== Выбор пользователя ====
+// ==== Пользователь (кто сейчас) ====
 let currentUser = localStorage.getItem('mc_user') || '';
 
 function chooseUser(user, fromModal = false) {
@@ -28,7 +28,6 @@ function chooseUser(user, fromModal = false) {
   }
 }
 
-// Подсветка активной кнопки пользователя
 function highlightUserBtn() {
   const btnS = document.getElementById('btn-svyat');
   const btnA = document.getElementById('btn-alena');
@@ -38,14 +37,12 @@ function highlightUserBtn() {
   }
 }
 
-// Показ модального окна для смены пользователя
 function showModal() {
   document.getElementById('user-modal').style.display = 'flex';
   document.querySelector('.container').style.filter = 'blur(4px)';
   document.querySelector('.container').style.pointerEvents = 'none';
 }
 
-// При загрузке страницы: показываем модалку, если пользователь не выбран
 window.onload = function () {
   if (!currentUser) {
     showModal();
@@ -57,7 +54,7 @@ window.onload = function () {
     loadMovies();
   }
 };
-// ==== Добавить фильм ====
+// ==== Добавление фильма ====
 async function addMovie() {
   const title = document.getElementById('new-movie-title').value.trim();
   const year = document.getElementById('new-movie-year').value.trim();
@@ -82,7 +79,7 @@ async function addMovie() {
   loadMovies();
 }
 
-// ==== Удалить фильм ====
+// ==== Удаление фильма ====
 async function deleteMovie(id) {
   if (confirm('Точно удалить фильм?')) {
     await db.collection('movies').doc(id).delete();
@@ -90,41 +87,21 @@ async function deleteMovie(id) {
   }
 }
 
-// ==== Базовый рендер карточек фильмов ====
+// ==== Рендер списка фильмов (карточек) ====
 async function loadMovies() {
   const res = await db.collection('movies').orderBy('date', 'desc').get();
   let html = '';
+  const maxPreview = 60;
   res.forEach(doc => {
     const m = doc.data();
-    let verb = (m.addedBy === 'Алёна') ? 'добавила' : 'добавил';
-    let yearStr = m.year ? `<span class="mini">(${m.year})</span>` : '';
-    html += `<li class="movie">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <span class="movie-title">${m.title} ${yearStr}</span>
-          <span class="mini">[${m.status || ''}]</span>
-          <div class="mini">${verb}: ${m.addedBy || '-'}</div>
-        </div>
-        <button class="del-btn" onclick="deleteMovie('${doc.id}')" title="Удалить фильм">✖️</button>
-      </div>
-      <!-- Дальше — поля для оценок, комментариев, эмодзи и подтверждений (следующий кусок) -->
-    </li>`;
-  });
-  document.getElementById('movie-list').innerHTML = html;
-}
-  res.forEach(doc => {
-    const m = doc.data();
-    let verb = (m.addedBy === 'Алёна') ? 'добавила' : 'добавил';
+    let verb = (m.addedBy === 'Алёна') ? 'добавила' : (m.addedBy === 'Свят' ? 'добавил' : '');
     let yearStr = m.year ? `<span class="mini">(${m.year})</span>` : '';
     let disableS = (currentUser !== 'Свят' || m.confirmedSvyat) ? 'disabled' : '';
     let disableA = (currentUser !== 'Алёна' || m.confirmedAlena) ? 'disabled' : '';
-
-    // "ещё не оценил"
     let needA = !m.confirmedAlena ? `<span class="important-note">Алёна ещё не оценила</span>` : '';
     let needS = !m.confirmedSvyat ? `<span class="important-note">Свят ещё не оценил</span>` : '';
 
-    // Комментарии с "показать всё"
-    const maxPreview = 60;
+    // Для длинных комментариев (Показать всё)
     let previewS = m.commentSvyat && m.commentSvyat.length > maxPreview
       ? `${m.commentSvyat.slice(0, maxPreview)}... <span class="show-more" onclick="expandComment(this,'${m.commentSvyat.replace(/'/g,"&#39;")}')">Показать всё</span>`
       : (m.commentSvyat || '');
@@ -137,7 +114,7 @@ async function loadMovies() {
         <div>
           <span class="movie-title">${m.title} ${yearStr}</span>
           <span class="mini">[${m.status || ''}]</span>
-          <div class="mini">${verb}: ${m.addedBy || '-'}</div>
+          ${m.addedBy ? `<div class="mini">${verb}: ${m.addedBy}</div>` : ''}
         </div>
         <button class="del-btn" onclick="deleteMovie('${doc.id}')" title="Удалить фильм">✖️</button>
       </div>
@@ -178,6 +155,8 @@ async function loadMovies() {
       </div>
     </li>`;
   });
+  document.getElementById('movie-list').innerHTML = html;
+}
 // ==== Сохранение оценок, эмодзи, комментариев ====
 async function setScore(id, user, value) {
   const field = user === 'Свят' ? 'scoreSvyat' : 'scoreAlena';
@@ -219,49 +198,13 @@ async function randomMovie() {
   const rnd = arr[Math.floor(Math.random()*arr.length)];
   document.getElementById('random-out').innerHTML = `🎬 Ваш выбор: <b>${rnd.title}${rnd.year ? ' ('+rnd.year+')' : ''}</b>`;
 }
-// ==== Перезапуск рендера при смене пользователя ====
+// ==== Перерисовка при смене пользователя ====
 function rerenderAll() {
   highlightUserBtn();
   loadMovies();
 }
 
-// ==== Блокировка ввода до выбора пользователя ====
-function lockInterface(lock) {
-  if (lock) {
-    document.querySelector('.container').style.filter = 'blur(4px)';
-    document.querySelector('.container').style.pointerEvents = 'none';
-  } else {
-    document.querySelector('.container').style.filter = '';
-    document.querySelector('.container').style.pointerEvents = '';
-  }
-}
-
-// Подсветка успешного действия (например, при подтверждении или удалении)
-function flashSuccess(selector) {
-  const el = document.querySelector(selector);
-  if (!el) return;
-  el.style.transition = 'background .3s';
-  el.style.background = '#dcffd7';
-  setTimeout(() => { el.style.background = ''; }, 600);
-}
-
-// Модифицируем confirmReview и deleteMovie — теперь с анимацией:
-async function confirmReview(id, user) {
-  const field = user === 'Свят' ? 'confirmedSvyat' : 'confirmedAlena';
-  await db.collection('movies').doc(id).update({ [field]: true });
-  flashSuccess('.movie-list');
-  loadMovies();
-}
-
-async function deleteMovie(id) {
-  if (confirm('Точно удалить фильм?')) {
-    await db.collection('movies').doc(id).delete();
-    flashSuccess('.movie-list');
-    loadMovies();
-  }
-}
-
-// Очистка поля добавления по Enter
+// ==== Автоочистка поля добавления по Enter ====
 document.getElementById('new-movie-title').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
     addMovie();
@@ -273,23 +216,22 @@ document.getElementById('new-movie-year').addEventListener('keydown', function(e
   }
 });
 
-// Автоматически вызываем rerenderAll при смене пользователя
+// ==== Автоматическая перерисовка при смене пользователя ====
 document.getElementById('btn-svyat').addEventListener('click', rerenderAll);
 document.getElementById('btn-alena').addEventListener('click', rerenderAll);
 document.getElementById('btn-switch').addEventListener('click', function() {
-  lockInterface(true);
+  showModal();
 });
 
-// Если пользователь не выбран, всё “заблурено”
-window.onload = function () {
-  if (!currentUser) {
-    showModal();
-    lockInterface(true);
-  } else {
-    document.getElementById('user-modal').style.display = 'none';
-    lockInterface(false);
-    highlightUserBtn();
-    loadMovies();
-  }
-};
+// ==== (Опционально) Лоадер — если хочешь отображать “загрузка…” при долгой загрузке фильмов ====
+// Добавь в index.html после <div class="container"> <div id="loader" style="display:none;text-align:center;">Загрузка...</div>
+// И сюда в main.js:
+function showLoader(show) {
+  document.getElementById('loader').style.display = show ? 'block' : 'none';
+}
+
+// В loadMovies:
+// showLoader(true);
+// ... весь код загрузки ...
+// showLoader(false);
 
