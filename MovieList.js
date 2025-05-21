@@ -41,12 +41,24 @@ export default function MovieList({ user }) {
   const [newMovie, setNewMovie] = useState({ title: "", year: "" });
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("Запланировано");
+
+  // --- Поиск
+  const [search, setSearch] = useState("");
+  // --- Рандомайзер
+  function randomPick() {
+    const filtered = movies.filter(m => m.status === "Запланировано");
+    if (filtered.length === 0) return alert("Нет фильмов для выбора!");
+    const rnd = filtered[Math.floor(Math.random() * filtered.length)];
+    openMovie(rnd);
+  }
+
+  // --- Состояния для модалки фильма (оценка/коммент)
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [myRating, setMyRating] = useState(0);
   const [myComment, setMyComment] = useState("");
   const [updating, setUpdating] = useState(false);
 
-  // Реалтайм загрузка фильмов
+  // --- Реалтайм загрузка фильмов
   useEffect(() => {
     const q = query(collection(db, "movies"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, snapshot => {
@@ -61,7 +73,7 @@ export default function MovieList({ user }) {
     return () => unsubscribe();
   }, [db]);
 
-  // Добавление фильма
+  // --- Добавление фильма
   async function handleAddMovie() {
     if (!newMovie.title.trim() || !newMovie.year.trim()) return;
     await addDoc(collection(db, "movies"), {
@@ -77,13 +89,13 @@ export default function MovieList({ user }) {
     setShowAdd(false);
   }
 
-  // Удаление фильма
+  // --- Удаление фильма
   async function handleDeleteMovie(id) {
     if (window.confirm("Удалить этот фильм?")) {
       await deleteDoc(doc(db, "movies", id));
     }
   }
-  // Открытие окна фильма + загрузка рейтинга
+  // --- Открытие фильма (загрузка своей оценки/коммента)
   async function openMovie(movie) {
     setSelectedMovie(movie);
     const db = getFirestore();
@@ -99,7 +111,7 @@ export default function MovieList({ user }) {
     }
   }
 
-  // Сохранение оценки и комментария
+  // --- Сохранение оценки и комментария
   async function handleSaveRating() {
     if (!myRating) return;
     setUpdating(true);
@@ -126,6 +138,7 @@ export default function MovieList({ user }) {
     setSelectedMovie(null);
   }
 
+  // --- Рендер
   return (
     <div className="movie-list">
       <div className="movie-list-header">
@@ -134,7 +147,24 @@ export default function MovieList({ user }) {
           +
         </button>
       </div>
-      {/* Табы фильтра */}
+      {/* Поиск */}
+      <input
+        type="text"
+        placeholder="Поиск по названию"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        style={{
+          width: "100%",
+          padding: "8px 12px",
+          borderRadius: 12,
+          border: "none",
+          margin: "8px 0 16px 0",
+          background: "#1b1f3a",
+          color: "#fff",
+          fontSize: "1.04rem"
+        }}
+      />
+      {/* Табы + рандомайзер */}
       <div className="movie-list-tabs" style={{ display: "flex", gap: 12, marginBottom: 12 }}>
         <button
           className={filter === "Запланировано" ? "active" : ""}
@@ -166,6 +196,21 @@ export default function MovieList({ user }) {
         >
           Просмотрено
         </button>
+        <button
+          onClick={randomPick}
+          style={{
+            marginLeft: "auto",
+            background: "#3843ab",
+            color: "#fff",
+            border: "none",
+            padding: "8px 18px",
+            borderRadius: 18,
+            cursor: "pointer",
+            fontWeight: 500
+          }}
+        >
+          Что посмотреть?
+        </button>
       </div>
       {/* Модалка для добавления */}
       {showAdd && (
@@ -193,16 +238,21 @@ export default function MovieList({ user }) {
           </div>
         </div>
       )}
+
       {/* Список фильмов */}
       {loading ? (
         <div style={{ color: "#bbc2f2", marginTop: 32 }}>Загрузка...</div>
       ) : (
         <ul>
-          {movies.filter(m => m.status === filter).length === 0 && (
-            <li className="empty">Нет фильмов. Добавьте первый!</li>
-          )}
           {movies
             .filter(m => m.status === filter)
+            .filter(m => m.title.toLowerCase().includes(search.toLowerCase()))
+            .length === 0 && (
+              <li className="empty">Нет фильмов. Добавьте первый!</li>
+            )}
+          {movies
+            .filter(m => m.status === filter)
+            .filter(m => m.title.toLowerCase().includes(search.toLowerCase()))
             .map(m => (
               <li
                 key={m.id}
@@ -241,7 +291,7 @@ export default function MovieList({ user }) {
         </ul>
       )}
 
-      {/* Модальное окно фильма */}
+      {/* Модальное окно фильма — оценки и комментарии */}
       {selectedMovie && (
         <div className="modal-backdrop">
           <div className="modal" style={{ minWidth: 300 }}>
