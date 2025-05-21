@@ -1,11 +1,10 @@
-// App.js
 import React, { useState } from "react";
 import "./App.css";
 import MovieList from "./MovieList";
-// Firebase (по твоей конфигурации)
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
 
+// ТВОЙ КОНФИГ FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyAxLMSDQSPon7NTd9loVRMLNCseBFSOTDc",
   authDomain: "movieclub-aba80.firebaseapp.com",
@@ -15,11 +14,9 @@ const firebaseConfig = {
   appId: "1:747897349535:web:bd29be3880dbcffac749aa",
   measurementId: "G-LQ40KH85NE"
 };
-
 const app = initializeApp(firebaseConfig);
 getAnalytics(app);
 
-// Два пользователя
 const USERS = [
   {
     id: "svyat",
@@ -69,7 +66,6 @@ function App() {
 
   return (
     <div className="app">
-      {/* Верхняя панель */}
       <header className="header">
         <div className="title">Свят & Алёна MovieClub</div>
         <div className="user-profile" onClick={handleLogout} title="Сменить пользователя">
@@ -77,23 +73,16 @@ function App() {
           <span>{user.name}</span>
         </div>
       </header>
-
-      {/* Основная часть */}
       <main className="main">
         {tab === "movies" && <MovieList user={user} />}
-        {tab === "achievements" && <div>Ачивки (вкладка 2, будет позже)</div>}
-        {tab === "history" && <div>История (вкладка 3, будет позже)</div>}
       </main>
-
-      {/* Нижняя навигация */}
       <nav className="tabbar">
         <button className={tab === "movies" ? "active" : ""} onClick={() => setTab("movies")}>Фильмы</button>
-        <button className={tab === "achievements" ? "active" : ""} onClick={() => setTab("achievements")}>Ачивки</button>
-        <button className={tab === "history" ? "active" : ""} onClick={() => setTab("history")}>История</button>
       </nav>
     </div>
   );
 }
 
 export default App;
+
 
